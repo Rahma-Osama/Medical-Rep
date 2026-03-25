@@ -17,19 +17,19 @@ class AppTextStyle{
   );
 
   static TextStyle title = TextStyle(
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: FontWeight.bold,
     color: AppColors.blackColor,
   );
 
   static TextStyle subtitle = TextStyle(
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: FontWeight.w600,
     color: AppColors.blackColor,
   );
 
   static TextStyle body = TextStyle(
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: FontWeight.w500,
     color: AppColors.blackColor,
   );

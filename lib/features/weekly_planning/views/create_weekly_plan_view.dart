@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
+import 'package:medical_rep/core/styles/app_text_style.dart';
+import 'package:medical_rep/features/weekly_planning/views/widgets/custom_app_bar.dart';
 import 'package:medical_rep/features/weekly_planning/views/weekly_plan_status_view.dart';
+import 'package:medical_rep/core/widgets/custom_button_widget.dart';
+import 'package:medical_rep/features/weekly_planning/views/widgets/custom_days_tab.dart';
 
 import 'package:medical_rep/features/weekly_planning/views/widgets/custom_dropdown_widget.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/custom_snackbar_widget.dart';
@@ -41,62 +45,20 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
       backgroundColor: const Color(0xFFF5F7FA),
       body: CustomScrollView(
         slivers: [
-                    SliverAppBar(
-            expandedHeight: 180.0,
-            floating: false,
-            pinned: true,
-            elevation: 0,
-            backgroundColor: AppColors.backgroundColor,
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsetsDirectional.only(start: 20, bottom: 16),
-              title: const Text("Plan Weekly Visit",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-
-              background: Container(
-
-                decoration: BoxDecoration(
-
-                  gradient: LinearGradient(
-
-                    begin: Alignment.topRight,
-
-                    end: Alignment.bottomLeft,
-
-                    colors: [AppColors.primaryColor, AppColors.thirdColor],
-
-                  ),
-
-                ),
-
-                child: Stack(
-                  children: [
-                    Positioned(
-                      right: -20,
-                      top: -20,
-                      child: CircleAvatar(radius: 80, backgroundColor: AppColors.whiteColor.withOpacity(0.05)),
-                    ),
-                  ],
-
-                ),
-
-              ),
-
-            ),
-
-          ),
-
-
-
+          //header
+                    
+CustomAppBar(label: 'Plan Weekly Visit',),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // شريط الأيام
+                  // title
                   _buildSectionTitle("Select Day"),
                   const SizedBox(height: 12),
-                  _buildDaysTabs(),
+                  //days tab
+                  CustomDaysTab(),
 
                   const SizedBox(height: 25),
                   _buildSectionTitle("Visit Configuration for ${weekDays[selectedDayIndex]}"),
@@ -106,10 +68,10 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.whiteColor,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10)),
+                        BoxShadow(color: AppColors.blackColor.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10)),
                       ],
                     ),
                     child: Column(
@@ -163,7 +125,7 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
                   const SizedBox(height: 30),
 
                   // قسم الملاحظات
-                  _buildSectionTitle("Additional Notes (Optional)"),
+                  _buildSectionTitle("Additional Notes"),
                   const SizedBox(height: 12),
                   TextField(
                     maxLines: 3,
@@ -187,29 +149,26 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
                         BoxShadow(color: AppColors.primaryColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
                       ],
                     ),
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryColor,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                        elevation: 0,
-                      ),
-                      onPressed: () {
-                        if (_completionRate < 1.0) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Please complete all 6 days before submitting.")),
-                          );
-                        } else {
-                          AppSnackBar.showSuccess(
-                            context: context,
-                            title: "Full Plan Submitted!",
-                            message: "Your weekly schedule is sent for approval.",
-                          );
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => const WeeklyPlanningView()));
-                        }
-                      },
-                      child: const Text("Submit Full Weekly Plan",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                    ),
+                    child: CustomElevatedButton(
+  text: "Submit Plan",
+  onPressed: () {
+    if (_completionRate < 1.0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please complete all 6 days before submitting.")),
+      );
+    } else {
+      AppSnackBar.showSuccess(
+        context: context,
+        title: "Full Plan Submitted!",
+        message: "Your weekly schedule is sent for approval.",
+      );
+      Navigator.push(
+        context, 
+        MaterialPageRoute(builder: (context) => const WeeklyPlanningView())
+      );
+    }
+  },
+),
                   ),
                   const SizedBox(height: 50),
                 ],
@@ -222,57 +181,10 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
   }
 
   // ويدجت شريط الأيام
-  Widget _buildDaysTabs() {
-    return SizedBox(
-      height: 55,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: weekDays.length,
-        itemBuilder: (context, index) {
-          bool isSelected = selectedDayIndex == index;
-          bool hasData = _weeklyData[index]?["doctor"] != null;
-
-          return GestureDetector(
-            onTap: () => setState(() => selectedDayIndex = index),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 70,
-              margin: const EdgeInsets.only(right: 12),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primaryColor : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isSelected ? AppColors.primaryColor : Colors.grey.shade300,
-                  width: 1.5,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  Center(
-                    child: Text(
-                      weekDays[index],
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.black87,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  if (hasData && !isSelected)
-                    const Positioned(
-                      top: 5,
-                      right: 5,
-                      child: Icon(Icons.check_circle, size: 14, color: Colors.green),
-                    ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
 
   Widget _buildSectionTitle(String title) {
-    return Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2D3142)));
+    return Text(title, style:   AppTextStyle.title.copyWith(
+                  color: AppColors.grayColor
+                ));
   }
 }
