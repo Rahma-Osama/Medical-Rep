@@ -5,10 +5,8 @@ import 'package:medical_rep/core/widgets/custom_app_bar.dart';
 import 'package:medical_rep/features/weekly_planning/views/weekly_plan_status_view.dart';
 import 'package:medical_rep/core/widgets/custom_button_widget.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/custom_days_tab.dart';
-
 import 'package:medical_rep/features/weekly_planning/views/widgets/custom_dropdown_widget.dart';
 import 'package:medical_rep/core/widgets/custom_snackbar_widget.dart';
-// تأكدي من اسم الملف
 import 'package:medical_rep/features/weekly_planning/views/widgets/segmented_controll_widget.dart';
 
 class CreatePlanScreen extends StatefulWidget {
@@ -35,7 +33,9 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
 
   // ميثود لحساب نسبة الإنجاز
   double get _completionRate {
-    int completed = _weeklyData.values.where((day) => day["doctor"] != null && day["product"] != null).length;
+    int completed = _weeklyData.values
+        .where((day) => day["doctor"] != null && day["product"] != null)
+        .length;
     return completed / weekDays.length;
   }
 
@@ -45,20 +45,27 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
       backgroundColor: const Color(0xFFF5F7FA),
       body: CustomScrollView(
         slivers: [
-          //header
-                    
-CustomAppBar(label: 'Plan Weekly Visit',),
+          const CustomAppBar(label: 'Plan Weekly Visit'),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // title
+                  // Select Day
                   _buildSectionTitle("Select Day"),
                   const SizedBox(height: 12),
-                  //days tab
-                  CustomDaysTab(),
+                  
+                  // تعديل: تمرير الحالة والوظيفة للـ Widget
+                CustomDaysTab(
+  selectedIndex: selectedDayIndex,
+  weeklyData: _weeklyData, // مرري الـ map اللي عندك فوق
+  onDaySelected: (index) {
+    setState(() {
+      selectedDayIndex = index;
+    });
+  },
+),
 
                   const SizedBox(height: 25),
                   _buildSectionTitle("Visit Configuration for ${weekDays[selectedDayIndex]}"),
@@ -71,22 +78,31 @@ CustomAppBar(label: 'Plan Weekly Visit',),
                       color: AppColors.whiteColor,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
-                        BoxShadow(color: AppColors.blackColor.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10)),
+                        BoxShadow(
+                          color: AppColors.blackColor.withOpacity(0.05),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
                       ],
                     ),
                     child: Column(
                       children: [
-                        // اختيار الدكتور
+                        // اختيار الدكتور (مرتبط بالـ index الحالي)
                         CustomDropdownWidget(
                           label: "Select Doctor",
                           icon: Icons.person_search_outlined,
                           value: _weeklyData[selectedDayIndex]?["doctor"],
-                          items: const ["Dr. Ahmed Ali", "Dr. Sarah Mahmoud", "Dr. Mohamed Hassan", "Dr. Layla Ibrahim"],
+                          items: const [
+                            "Dr. Ahmed Ali",
+                            "Dr. Sarah Mahmoud",
+                            "Dr. Mohamed Hassan",
+                            "Dr. Layla Ibrahim"
+                          ],
                           onChanged: (val) => setState(() => _weeklyData[selectedDayIndex]?["doctor"] = val),
                         ),
                         const Divider(height: 30),
 
-                        // اختيار المنتج (البريكا)
+                        // اختيار المنتج
                         CustomDropdownWidget(
                           label: "Target Product",
                           icon: Icons.medication_outlined,
@@ -129,11 +145,18 @@ CustomAppBar(label: 'Plan Weekly Visit',),
                   const SizedBox(height: 12),
                   TextField(
                     maxLines: 3,
+                    onChanged: (val) {
+                       // اختيار اختياري: حفظ الملاحظات لكل يوم برضه
+                       _weeklyData[selectedDayIndex]?["notes"] = val;
+                    },
                     decoration: InputDecoration(
                       hintText: "Add specific details for ${weekDays[selectedDayIndex]}...",
                       fillColor: Colors.white,
                       filled: true,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
 
@@ -146,29 +169,36 @@ CustomAppBar(label: 'Plan Weekly Visit',),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: [
-                        BoxShadow(color: AppColors.primaryColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
+                        BoxShadow(
+                          color: AppColors.primaryColor.withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
                       ],
                     ),
                     child: CustomElevatedButton(
-  text: "Submit Plan",
-  onPressed: () {
-    if (_completionRate < 1.0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please complete all 6 days before submitting.")),
-      );
-    } else {
-      AppSnackBar.showSuccess(
-        context: context,
-        title: "Full Plan Submitted!",
-        message: "Your weekly schedule is sent for approval.",
-      );
-      Navigator.push(
-        context, 
-        MaterialPageRoute(builder: (context) => const WeeklyPlanningView())
-      );
-    }
-  },
-),
+                      text: "Submit Plan",
+                      onPressed: () {
+                        if (_completionRate < 1.0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Please complete all 6 days before submitting."),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                        } else {
+                          AppSnackBar.showSuccess(
+                            context: context,
+                            title: "Full Plan Submitted!",
+                            message: "Your weekly schedule is sent for approval.",
+                          );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const WeeklyPlanningView()),
+                          );
+                        }
+                      },
+                    ),
                   ),
                   const SizedBox(height: 50),
                 ],
@@ -180,11 +210,10 @@ CustomAppBar(label: 'Plan Weekly Visit',),
     );
   }
 
-  // ويدجت شريط الأيام
-
   Widget _buildSectionTitle(String title) {
-    return Text(title, style:   AppTextStyle.title.copyWith(
-                  color: AppColors.grayColor
-                ));
+    return Text(
+      title,
+      style: AppTextStyle.title.copyWith(color: AppColors.grayColor),
+    );
   }
 }
