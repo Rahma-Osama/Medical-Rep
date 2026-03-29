@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/styles/app_text_style.dart';
-import 'package:medical_rep/features/weekly_planning/views/widgets/custom_app_bar.dart';
+import 'package:medical_rep/core/widgets/custom_app_bar.dart';
 import 'package:medical_rep/features/weekly_planning/views/weekly_plan_status_view.dart';
 import 'package:medical_rep/core/widgets/custom_button_widget.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/custom_days_tab.dart';
 
 import 'package:medical_rep/features/weekly_planning/views/widgets/custom_dropdown_widget.dart';
-import 'package:medical_rep/features/weekly_planning/views/widgets/custom_snackbar_widget.dart';
+import 'package:medical_rep/core/widgets/custom_snackbar_widget.dart';
 // تأكدي من اسم الملف
 import 'package:medical_rep/features/weekly_planning/views/widgets/segmented_controll_widget.dart';
 

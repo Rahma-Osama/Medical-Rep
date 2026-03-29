@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/styles/app_text_style.dart';
-import 'package:medical_rep/features/weekly_planning/views/widgets/custom_app_bar.dart';
+import 'package:medical_rep/core/widgets/custom_app_bar.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/cutom_plan_status_card.dart';
 
 class WeeklyPlanningView extends StatelessWidget {
