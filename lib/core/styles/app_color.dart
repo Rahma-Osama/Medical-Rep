@@ -8,4 +8,5 @@ class AppColors {
   static Color grayColor = Color.fromARGB(255, 95, 96, 96);
    static Color lightgrayColor = Color.fromARGB(255, 230, 233, 233);
   static Color whiteColor = Color(0xffffffff);
+  static Color errorColor = Color(0xffE53935);
 }
