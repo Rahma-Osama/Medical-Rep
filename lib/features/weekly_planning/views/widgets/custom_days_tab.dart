@@ -1,44 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 
-class CustomDaysTab extends StatefulWidget {
-  const CustomDaysTab({super.key});
+class CustomDaysTab extends StatelessWidget {
+  final int selectedIndex;
+  final Function(int) onDaySelected;
+  final Map<int, Map<String, dynamic>> weeklyData; // بنمرر الداتا عشان نرسم علامة الصح
 
-  @override
-  State<CustomDaysTab> createState() => _CustomDaysTabState();
-}
+  const CustomDaysTab({
+    super.key,
+    required this.selectedIndex,
+    required this.onDaySelected,
+    required this.weeklyData,
+  });
 
-class _CustomDaysTabState extends State<CustomDaysTab> {
-       int selectedDayIndex = 0;
-  final List<String> weekDays = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu"];
-    final Map<int, Map<String, dynamic>> _weeklyData = {
-    0: {"doctor": null, "product": null, "shift": "AM", "type": "Single", "isDone": false},
-    1: {"doctor": null, "product": null, "shift": "AM", "type": "Single", "isDone": false},
-    2: {"doctor": null, "product": null, "shift": "AM", "type": "Single", "isDone": false},
-    3: {"doctor": null, "product": null, "shift": "AM", "type": "Single", "isDone": false},
-    4: {"doctor": null, "product": null, "shift": "AM", "type": "Single", "isDone": false},
-    5: {"doctor": null, "product": null, "shift": "AM", "type": "Single", "isDone": false},
-  };
-
-  // ميثود لحساب نسبة الإنجاز
-  double get _completionRate {
-    int completed = _weeklyData.values.where((day) => day["doctor"] != null && day["product"] != null).length;
-    return completed / weekDays.length;
-  }
   @override
   Widget build(BuildContext context) {
- 
+    final List<String> weekDays = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu"];
+
     return SizedBox(
       height: 55,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: weekDays.length,
         itemBuilder: (context, index) {
-          bool isSelected = selectedDayIndex == index;
-          bool hasData = _weeklyData[index]?["doctor"] != null;
+          bool isSelected = selectedIndex == index;
+          // لو اليوم فيه دكتور ومنتج مختارين، نعتبره خلص
+          bool isDayCompleted = weeklyData[index]?["doctor"] != null && 
+                               weeklyData[index]?["product"] != null;
 
           return GestureDetector(
-            onTap: () => setState(() => selectedDayIndex = index),
+            onTap: () => onDaySelected(index), // بننادي الفانكشن اللي جاية من الشاشة الكبيرة
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 70,
@@ -50,6 +41,9 @@ class _CustomDaysTabState extends State<CustomDaysTab> {
                   color: isSelected ? AppColors.primaryColor : Colors.grey.shade300,
                   width: 1.5,
                 ),
+                boxShadow: isSelected 
+                    ? [BoxShadow(color: AppColors.primaryColor.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))] 
+                    : [],
               ),
               child: Stack(
                 children: [
@@ -62,11 +56,16 @@ class _CustomDaysTabState extends State<CustomDaysTab> {
                       ),
                     ),
                   ),
-                  if (hasData && !isSelected)
+                  // علامة الصح تظهر لو اليوم خلص ومش واقفين عليه حالياً
+                  if (isDayCompleted)
                     const Positioned(
-                      top: 5,
-                      right: 5,
-                      child: Icon(Icons.check_circle, size: 14, color: Colors.green),
+                      top: 6,
+                      right: 6,
+                      child: Icon(
+                        Icons.check_circle,
+                        size: 14,
+                        color: Colors.green,
+                      ),
                     ),
                 ],
               ),
@@ -74,6 +73,6 @@ class _CustomDaysTabState extends State<CustomDaysTab> {
           );
         },
       ),
-    );;
+    );
   }
 }
