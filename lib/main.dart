@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:medical_rep/features/doctor_and_pharmacy/views/entities_list_page.dart';
-import 'package:medical_rep/features/doctor_and_pharmacy/views/pharmacy_profile_page.dart';
+
+import 'package:medical_rep/features/Auth/views/LoginView.dart';
 import 'package:medical_rep/features/weekly_planning/views/create_weekly_plan_view.dart';
 import 'package:medical_rep/features/weekly_planning/views/weekly_plan_status_view.dart';
+
+import 'features/home/views/home_screen.dart';
+import 'features/profile/views/profile_screen.dart';
 
 void main() {
   runApp(const MedicalApp());

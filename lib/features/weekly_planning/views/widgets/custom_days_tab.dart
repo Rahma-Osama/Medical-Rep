@@ -1,72 +1,74 @@
 import 'package:flutter/material.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 
-class CustomDaysTab extends StatefulWidget {
-  const CustomDaysTab({super.key});
+class CustomDaysTab extends StatelessWidget {
+  final int selectedIndex;
+  final Function(int) onDaySelected;
+  final Map<int, Map<String, dynamic>> weeklyData;
 
-  @override
-  State<CustomDaysTab> createState() => _CustomDaysTabState();
-}
+  const CustomDaysTab({
+    super.key,
+    required this.selectedIndex,
+    required this.onDaySelected,
+    required this.weeklyData,
+  });
 
-class _CustomDaysTabState extends State<CustomDaysTab> {
-       int selectedDayIndex = 0;
-  final List<String> weekDays = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu"];
-    final Map<int, Map<String, dynamic>> _weeklyData = {
-    0: {"doctor": null, "product": null, "shift": "AM", "type": "Single", "isDone": false},
-    1: {"doctor": null, "product": null, "shift": "AM", "type": "Single", "isDone": false},
-    2: {"doctor": null, "product": null, "shift": "AM", "type": "Single", "isDone": false},
-    3: {"doctor": null, "product": null, "shift": "AM", "type": "Single", "isDone": false},
-    4: {"doctor": null, "product": null, "shift": "AM", "type": "Single", "isDone": false},
-    5: {"doctor": null, "product": null, "shift": "AM", "type": "Single", "isDone": false},
-  };
-
-  // ميثود لحساب نسبة الإنجاز
-  double get _completionRate {
-    int completed = _weeklyData.values.where((day) => day["doctor"] != null && day["product"] != null).length;
-    return completed / weekDays.length;
-  }
   @override
   Widget build(BuildContext context) {
- 
+    final List<String> weekDays = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu"];
+
     return SizedBox(
       height: 55,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: weekDays.length,
         itemBuilder: (context, index) {
-          bool isSelected = selectedDayIndex == index;
-          bool hasData = _weeklyData[index]?["doctor"] != null;
+          bool isSelected = selectedIndex == index;
+          
+          // شرط ظهور علامة الصح: لازم الدكتور والمنتج ميكونوش null في اليوم ده
+       // داخل itemBuilder في ملف custom_days_tab.dart
+bool isDayCompleted = weeklyData[index]?["doctor"] != null && 
+                     weeklyData[index]?["brick"] != null; // ضفنا الـ brick هنا
 
           return GestureDetector(
-            onTap: () => setState(() => selectedDayIndex = index),
+            onTap: () => onDaySelected(index),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 70,
+              duration: const Duration(milliseconds: 250),
+              width: 75,
               margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.primaryColor : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isSelected ? AppColors.primaryColor : Colors.grey.shade300,
+                  color: isSelected 
+                      ? AppColors.primaryColor 
+                      : (isDayCompleted ? Colors.green.shade300 : Colors.grey.shade300),
                   width: 1.5,
                 ),
+                boxShadow: isSelected 
+                    ? [BoxShadow(color: AppColors.primaryColor.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))] 
+                    : [],
               ),
               child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  Center(
-                    child: Text(
-                      weekDays[index],
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.black87,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  Text(
+                    weekDays[index],
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  if (hasData && !isSelected)
-                    const Positioned(
-                      top: 5,
-                      right: 5,
-                      child: Icon(Icons.check_circle, size: 14, color: Colors.green),
+                  // أيقونة الصح (تظهر لو اليوم مكتمل)
+                  if (isDayCompleted)
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: Icon(
+                        Icons.check_circle,
+                        size: 16,
+                        color: isSelected ? Colors.white : Colors.green,
+                      ),
                     ),
                 ],
               ),
@@ -74,6 +76,6 @@ class _CustomDaysTabState extends State<CustomDaysTab> {
           );
         },
       ),
-    );;
+    );
   }
 }
