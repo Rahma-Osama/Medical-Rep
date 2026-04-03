@@ -4,7 +4,7 @@ import 'package:medical_rep/core/styles/app_color.dart';
 class CustomDaysTab extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onDaySelected;
-  final Map<int, Map<String, dynamic>> weeklyData; // بنمرر الداتا عشان نرسم علامة الصح
+  final Map<int, Map<String, dynamic>> weeklyData;
 
   const CustomDaysTab({
     super.key,
@@ -24,47 +24,50 @@ class CustomDaysTab extends StatelessWidget {
         itemCount: weekDays.length,
         itemBuilder: (context, index) {
           bool isSelected = selectedIndex == index;
-          // لو اليوم فيه دكتور ومنتج مختارين، نعتبره خلص
-          bool isDayCompleted = weeklyData[index]?["doctor"] != null && 
-                               weeklyData[index]?["product"] != null;
+          
+          // شرط ظهور علامة الصح: لازم الدكتور والمنتج ميكونوش null في اليوم ده
+       // داخل itemBuilder في ملف custom_days_tab.dart
+bool isDayCompleted = weeklyData[index]?["doctor"] != null && 
+                     weeklyData[index]?["brick"] != null; // ضفنا الـ brick هنا
 
           return GestureDetector(
-            onTap: () => onDaySelected(index), // بننادي الفانكشن اللي جاية من الشاشة الكبيرة
+            onTap: () => onDaySelected(index),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 70,
+              duration: const Duration(milliseconds: 250),
+              width: 75,
               margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.primaryColor : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isSelected ? AppColors.primaryColor : Colors.grey.shade300,
+                  color: isSelected 
+                      ? AppColors.primaryColor 
+                      : (isDayCompleted ? Colors.green.shade300 : Colors.grey.shade300),
                   width: 1.5,
                 ),
                 boxShadow: isSelected 
-                    ? [BoxShadow(color: AppColors.primaryColor.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))] 
+                    ? [BoxShadow(color: AppColors.primaryColor.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))] 
                     : [],
               ),
               child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  Center(
-                    child: Text(
-                      weekDays[index],
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.black87,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  Text(
+                    weekDays[index],
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  // علامة الصح تظهر لو اليوم خلص ومش واقفين عليه حالياً
+                  // أيقونة الصح (تظهر لو اليوم مكتمل)
                   if (isDayCompleted)
-                    const Positioned(
-                      top: 6,
-                      right: 6,
+                    Positioned(
+                      top: 4,
+                      right: 4,
                       child: Icon(
                         Icons.check_circle,
-                        size: 14,
-                        color: Colors.green,
+                        size: 16,
+                        color: isSelected ? Colors.white : Colors.green,
                       ),
                     ),
                 ],

@@ -87,6 +87,21 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
                     ),
                     child: Column(
                       children: [
+                         // اختيار المنتج
+                      CustomDropdownWidget(
+  label: "Select Brick", // تغيير الاسم لمنطقة العمل
+  icon: Icons.location_city_outlined, // أيقونة أنسب للمناطق
+  value: _weeklyData[selectedDayIndex]?["brick"], // تخزين المنطقة المختارة
+  items: const ["Maadi", "Nasr City", "Dokki", "Zamalek"], // أمثلة للبريكات
+  onChanged: (val) {
+    setState(() {
+      _weeklyData[selectedDayIndex]?["brick"] = val;
+      // نصيحة: لما يغير البريكة، ممكن نصفر اختيار الدكتور عشان يختار من المنطقة الجديدة
+      _weeklyData[selectedDayIndex]?["doctor"] = null; 
+    });
+  },
+),
+                         const Divider(height: 30),
                         // اختيار الدكتور (مرتبط بالـ index الحالي)
                         CustomDropdownWidget(
                           label: "Select Doctor",
@@ -100,16 +115,10 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
                           ],
                           onChanged: (val) => setState(() => _weeklyData[selectedDayIndex]?["doctor"] = val),
                         ),
-                        const Divider(height: 30),
+                       
 
                         // اختيار المنتج
-                        CustomDropdownWidget(
-                          label: "Target Product",
-                          icon: Icons.medication_outlined,
-                          value: _weeklyData[selectedDayIndex]?["product"],
-                          items: const ["Panadol", "Augmentin", "Cataflam", "Brufen"],
-                          onChanged: (val) => setState(() => _weeklyData[selectedDayIndex]?["product"] = val),
-                        ),
+                    
                         const SizedBox(height: 25),
 
                         // التوقيت والنوع
