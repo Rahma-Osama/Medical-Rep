@@ -37,14 +37,6 @@ class FeedbackFollowUpCard extends StatelessWidget {
                 value: current.sampleGiven,
                 onChanged: (_) => cubit.toggleSample(),
               ),
-              const Divider(height: 24, thickness: 0.5),
-              _buildToggleRow(
-                icon: Icons.event_repeat_outlined,
-                title: 'Follow-up Required',
-                subtitle: 'Schedule another visit',
-                value: current.followUpRequired,
-                onChanged: (_) => cubit.toggleFollowUp(),
-              ),
             ],
           ),
         );
