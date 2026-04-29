@@ -15,7 +15,7 @@ class CustomDaysTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> weekDays = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu"];
+    final List<String> weekDays = ["Sat", "Sun", "Mon", "Tue", "Wed"];
 
     return SizedBox(
       height: 55,
