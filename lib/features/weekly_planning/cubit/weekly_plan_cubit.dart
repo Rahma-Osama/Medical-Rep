@@ -1,100 +1,106 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:medical_rep/core/data/repositeries/weekly_plan_repository.dart';
-import 'package:medical_rep/features/weekly_planning/cubit/weekly_plan_state.dart';
-import 'package:medical_rep/features/weekly_planning/model/visit_model.dart';
+import '../domain/entities/visit_entity.dart';
+import '../domain/usecases/save_visit_usecase.dart';
+import '../domain/usecases/submit_plan_usecase.dart';
+import 'weekly_plan_state.dart';
 
 class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
-  final WeeklyPlanRepository repository;
+  final SaveVisitUseCase saveVisitUseCase;
+  final SubmitPlanUseCase submitPlanUseCase;
 
-  WeeklyPlanCubit(this.repository) : super(WeeklyPlanInitial()) {
-    _loadSavedPlan();
+  WeeklyPlanCubit({
+    required this.saveVisitUseCase,
+    required this.submitPlanUseCase,
+  }) : super(WeeklyPlanInitial()) {
+    _initData();
   }
 
+  // المتغيرات اللي بتشيل حالة الصفحة الحالية
   int selectedDayIndex = 0;
-  // داخل WeeklyPlanCubit
-final List<String> weekDays = ["Sat", "Sun", "Mon", "Tue", "Wed"]; // 5 أيام فقط
+  final List<String> weekDays = ["Sat", "Sun", "Mon", "Tue", "Wed"];
 
-// خريطة البيانات المبدئية لـ 5 أيام
-Map<int, VisitModel> _weeklyData = {
-  0: VisitModel(),
-  1: VisitModel(),
-  2: VisitModel(),
-  3: VisitModel(),
-  4: VisitModel(),
-};
+  // مصدر البيانات الأساسي هو الـ Entity لضمان Clean Architecture
+  final Map<int, VisitEntity> _weeklyData = {
+    0: VisitEntity(),
+    1: VisitEntity(),
+    2: VisitEntity(),
+    3: VisitEntity(),
+    4: VisitEntity(),
+  };
 
-// Function عشان نتأكد إن كل الأيام تم إدخال بياناتها (المنطقة والدكتور)
-bool get isPlanComplete {
-  // بنلف على الـ 5 أيام ونشوف هل كل يوم فيه (منطقة + دكتور)
-  return _weeklyData.values.every((visit) => visit.isDayComplete);
-}
-  // 2. تحميل البيانات من Hive عند فتح الشاشة
-  void _loadSavedPlan() {
-    final savedPlan = repository.getLocalPlan();
-    if (savedPlan.isNotEmpty) {
-      _weeklyData = savedPlan;
+  void _initData() {
+    // تحميل البيانات المحفوظة محلياً (إن وجدت) عند فتح الكيوبيت
+    final saved = saveVisitUseCase.repository.getLocalPlan();
+    if (saved.isNotEmpty) {
+      _weeklyData.addAll(saved);
     }
     _emitUpdatedState();
   }
 
-  // 3. تحديث الحقول ديناميكياً (تعديل مباشر على الـ Object)
-  void updateField(String field, dynamic value) {
-    final currentVisit = _weeklyData[selectedDayIndex]!;
-
-    if (field == "brick") {
-      currentVisit.brick = value;
-      currentVisit.doctor = null; // تصفير الدكتور عند تغيير المنطقة
-    } else if (field == "doctor") {
-      currentVisit.doctor = value;
-    } else if (field == "shift") {
-      currentVisit.shift = value;
-    } else if (field == "type") {
-      currentVisit.type = value;
-    } else if (field == "notes") {
-      currentVisit.notes = value;
-    }
-
-    _emitUpdatedState();
-  }
-
+  // 1. الدالة اللي كانت ناقصة لتغيير اليوم
   void selectDay(int index) {
     selectedDayIndex = index;
     _emitUpdatedState();
   }
 
-  // 4. الحفظ النهائي (تم تعديل الوصول للبيانات ليكون من المتغير الخاص مباشرة)
+  // 2. تحديث البيانات (المنطقة، الدكتور، الشفت...)
+  void updateField(String field, dynamic value) {
+    final current = _weeklyData[selectedDayIndex]!;
+    
+    // Immutable Update: بنعمل نسخة جديدة من الـ Entity
+    _weeklyData[selectedDayIndex] = VisitEntity(
+      brick: field == "brick" ? value : current.brick,
+      // لو غيرنا المنطقة، بنصفر الدكتور عشان نختار دكتور جديد من المنطقة الجديدة
+      doctor: field == "brick" ? null : (field == "doctor" ? value : current.doctor),
+      shift: field == "shift" ? value : current.shift,
+      type: field == "type" ? value : current.type,
+      notes: field == "notes" ? value : current.notes,
+    );
+
+    _emitUpdatedState();
+  }
+
+  // 3. حفظ ورفع الخطة
   Future<void> submitPlan() async {
-    emit(WeeklyPlanLoading()); 
+    if (!isPlanComplete) {
+      emit(WeeklyPlanError("Please complete all 5 days first!"));
+      return;
+    }
 
+    emit(WeeklyPlanLoading());
     try {
-      // ✅ نستخدم _weeklyData مباشرة لأنها هي المصدر الحقيقي للبيانات (Single Source of Truth)
-      await repository.saveLocalPlan(_weeklyData);
-
+      // حفظ محلي أولاً
+      await saveVisitUseCase.call(_weeklyData);
+      // رفع الخطة للسيرفر (Supabase)
+      await submitPlanUseCase.call();
       emit(WeeklyPlanSuccess());
     } catch (e) {
-      emit(WeeklyPlanError("Failed to save plan: ${e.toString()}"));
+      emit(WeeklyPlanError("Sync Failed: ${e.toString()}"));
     }
   }
 
-  // 5. فلترة الدكاترة (Smart Logic)
+  // منطق الفلترة المبدئي للدكاترة بناءً على المنطقة
   List<String> getFilteredDoctors() {
     final brick = _weeklyData[selectedDayIndex]?.brick;
     if (brick == "Maadi") return ["Dr. Ahmed Ali", "Dr. Sara Hassan"];
     if (brick == "Nasr City") return ["Dr. John Doe", "Dr. Mona Samy"];
-    if (brick == "Dokki") return ["Dr. Khaled Yassin"];
+    if (brick == "Dokki") return ["Dr. Khaled Zaki", "Dr. Reham"];
     return [];
   }
 
-  // 6. حساب نسبة الاكتمال
+  // Getter للتأكد من اكتمال الـ 5 أيام
+  bool get isPlanComplete => _weeklyData.values.every((v) => v.isValid);
+
+  // حساب نسبة الإنجاز للـ UI
   double get _calculateCompletion {
-    int completed = _weeklyData.values.where((v) => v.isDayComplete).length;
+    int completed = _weeklyData.values.where((v) => v.isValid).length;
     return completed / weekDays.length;
   }
 
-  // 7. دالة تحديث الـ UI (تحويل الموديلات لـ JSON للـ UI)
+  // دالة موحدة لإرسال الحالة المحدثة للـ UI
   void _emitUpdatedState() {
     emit(WeeklyPlanUpdated(
-      weeklyData: _weeklyData.map((key, value) => MapEntry(key, value.toJson())), 
+      weeklyData: _weeklyData,
       selectedDayIndex: selectedDayIndex,
       completionRate: _calculateCompletion,
     ));
