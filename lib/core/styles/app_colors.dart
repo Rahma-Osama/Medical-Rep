@@ -5,8 +5,6 @@ class AppColors {
   static Color thirdColor = Color(0xff456882);
   static Color backgroundColor = Color(0xffE3E3E3);
   static Color blackColor = Color(0xff1F2C37);
-  static Color grayColor = Color.fromARGB(255, 95, 96, 96);
-   static Color lightgrayColor = Color.fromARGB(255, 230, 233, 233);
+  static Color grayColor = Color(0xff9CA4AB);
   static Color whiteColor = Color(0xffffffff);
-  static Color errorColor = Color(0xffE53935);
 }
