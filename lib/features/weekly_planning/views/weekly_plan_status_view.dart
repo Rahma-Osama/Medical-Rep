@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/styles/app_text_style.dart';
 import 'package:medical_rep/core/widgets/custom_app_bar.dart';
+import 'package:medical_rep/features/visit_flow/models/visit_model.dart';
+import 'package:medical_rep/features/visit_flow/views/active_visit_screen.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/cutom_plan_status_card.dart';
 
 class WeeklyPlanningView extends StatelessWidget {
@@ -40,8 +42,23 @@ class WeeklyPlanningView extends StatelessWidget {
                     color: Colors.green,
                     icon: Icons.check_circle_rounded,
                     onStartVisit: () {
-                      // Logic لبدء الزيارة
-                      print("Visit Started");
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ActiveVisitScreen(
+                            visit: VisitModel(
+                              visitId: 'v_001',
+                              doctorName: 'Dr. Ahmed Ali',
+                              specialty: 'Cardiology',
+                              clinicName: 'Elite Clinic',
+                              location: 'Alexandria, Smouha',
+                              shift: 'AM',
+                              targetProduct: 'Panadol',
+                              startTime: DateTime.now(),
+                            ),
+                          ),
+                        ),
+                      );                      print("Visit Started");
                     },
                   ),
 
@@ -60,7 +77,7 @@ class WeeklyPlanningView extends StatelessWidget {
                     color: Colors.orange,
                     icon: Icons.access_time_filled_rounded,
                     onStartVisit: () {
-                       // Logic لبدء الزيارة
+
                     },
                   ),
 
@@ -79,6 +96,25 @@ class WeeklyPlanningView extends StatelessWidget {
     return Text(
       title,
       style: AppTextStyle.title.copyWith(color: AppColors.grayColor),
+    );
+  }
+  void navigateToStartVisit(BuildContext context){
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ActiveVisitScreen(
+          visit: VisitModel(
+            visitId: 'v_001',
+            doctorName: 'Dr. Ahmed Ali',
+            specialty: 'Cardiology',
+            clinicName: 'Elite Clinic',
+            location: 'Alexandria, Smouha',
+            shift: 'AM',
+            targetProduct: 'Panadol',
+            startTime: DateTime.now(),
+          ),
+        ),
+      ),
     );
   }
 }
