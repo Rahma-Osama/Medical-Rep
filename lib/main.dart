@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:medical_rep/features/Auth/views/LoginView.dart';
+import 'package:medical_rep/features/visit_flow/presentation/pages/active_visit_screen.dart';
 import 'package:medical_rep/features/weekly_planning/views/create_weekly_plan_view.dart';
 import 'package:medical_rep/features/weekly_planning/views/weekly_plan_status_view.dart';
 
@@ -17,7 +18,7 @@ class MedicalApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home:HomeScreen(),
+      home:WeeklyPlanningView(),
     );
   }
 }
