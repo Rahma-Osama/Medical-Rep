@@ -1,8 +1,7 @@
 import 'package:hive/hive.dart';
+part 'visit_model.g.dart';
 
-part 'visit_model.g.dart'; // هذا الملف سيتم توليده تلقائياً
-
-@HiveType(typeId: 0) // رقم فريد لهذا الموديل
+@HiveType(typeId: 0)
 class VisitModel extends HiveObject {
   @HiveField(0)
   String? brick;
@@ -19,21 +18,31 @@ class VisitModel extends HiveObject {
   @HiveField(4)
   String? notes;
 
+  @HiveField(5)
+  String? date; // التاريخ بصيغة String مؤقتاً
+
+  @HiveField(6)
+  String? dayName;
+
   VisitModel({
     this.brick,
     this.doctor,
     this.shift = "AM",
     this.type = "Single",
     this.notes = "",
+    this.date,
+    this.dayName,
   });
 
- bool get isDayComplete => brick != null && doctor != null;
-// أضيفي هذه الميثود هنا:
+  // التحويل لـ JSON متوافق 100% مع أسماء أعمدة الداتا بيز
   Map<String, dynamic> toJson() => {
-        "brick": brick,
-        "doctor": doctor,
-        "shift": shift,
-        "type": type,
-        "notes": notes,
+        "visit_date": date,       // مطابق لـ visit_date
+        "day_name": dayName,      // مطابق لـ day_name
+        "brick": brick,           // مطابق لـ brick
+        "doctor_name": doctor,    // مطابق لـ doctor_name
+        "shift": shift,           // مطابق لـ shift
+        "visit_type": type,       // مطابق لـ visit_type
+        "notes": notes,           // مطابق لـ notes
+        "status": "pending",      // مطابق لـ status
       };
 }

@@ -4,6 +4,7 @@ import '../domain/usecases/save_visit_usecase.dart';
 import '../domain/usecases/submit_plan_usecase.dart';
 import 'weekly_plan_state.dart';
 
+// ملاحظة: تأكدي أن الـ WeeklyDataModel في الـ state أصبح يحتوي على List<VisitEntity> لكل يوم
 class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
   final SaveVisitUseCase saveVisitUseCase;
   final SubmitPlanUseCase submitPlanUseCase;
@@ -15,94 +16,154 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
     _initData();
   }
 
-  // المتغيرات اللي بتشيل حالة الصفحة الحالية
   int selectedDayIndex = 0;
   final List<String> weekDays = ["Sat", "Sun", "Mon", "Tue", "Wed"];
 
-  // مصدر البيانات الأساسي هو الـ Entity لضمان Clean Architecture
-  final Map<int, VisitEntity> _weeklyData = {
-    0: VisitEntity(),
-    1: VisitEntity(),
-    2: VisitEntity(),
-    3: VisitEntity(),
-    4: VisitEntity(),
+  // تخزين البيانات: كل يوم يحتوي على قائمة من الزيارات
+  final Map<int, List<VisitEntity>> _weeklyData = {
+    0: [], // Saturday
+    1: [], // Sunday
+    2: [], // Monday
+    3: [], // Tuesday
+    4: [], // Wednesday
   };
 
+  // كائن مؤقت لتخزين الاختيارات الحالية قبل الإضافة للقائمة
+  VisitEntity _tempVisit = VisitEntity(shift: "AM", type: "Single");
+
   void _initData() {
-    // تحميل البيانات المحفوظة محلياً (إن وجدت) عند فتح الكيوبيت
-    final saved = saveVisitUseCase.repository.getLocalPlan();
-    if (saved.isNotEmpty) {
-      _weeklyData.addAll(saved);
-    }
+    // هنا نفترض أن الـ LocalPlan يرجع الخريطة بالشكل الجديد
+    // إذا كان الكود القديم يرجع زيارة واحدة، ستحتاجين لتعديل الـ Repository أيضاً
     _emitUpdatedState();
   }
 
-  // 1. الدالة اللي كانت ناقصة لتغيير اليوم
+  String _getDateForDay(int index) {
+    DateTime now = DateTime.now();
+    DateTime targetDate = now.add(Duration(days: index)); 
+    return "${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}";
+  }
+
   void selectDay(int index) {
     selectedDayIndex = index;
+    // عند تغيير اليوم، نصفر النموذج المؤقت
+    _tempVisit = VisitEntity(shift: "AM", type: "Single");
     _emitUpdatedState();
   }
 
-  // 2. تحديث البيانات (المنطقة، الدكتور، الشفت...)
-  void updateField(String field, dynamic value) {
-    final current = _weeklyData[selectedDayIndex]!;
-    
-    // Immutable Update: بنعمل نسخة جديدة من الـ Entity
-    _weeklyData[selectedDayIndex] = VisitEntity(
-      brick: field == "brick" ? value : current.brick,
-      // لو غيرنا المنطقة، بنصفر الدكتور عشان نختار دكتور جديد من المنطقة الجديدة
-      doctor: field == "brick" ? null : (field == "doctor" ? value : current.doctor),
-      shift: field == "shift" ? value : current.shift,
-      type: field == "type" ? value : current.type,
-      notes: field == "notes" ? value : current.notes,
+  // تحديث البيانات في النموذج المؤقت (قبل الإضافة للقائمة)
+  void tempUpdateField(String field, dynamic value) {
+    _tempVisit = _tempVisit.copyWith(
+      brick: field == "brick" ? value : _tempVisit.brick,
+      doctor: field == "doctor" ? value : (field == "brick" ? null : _tempVisit.doctor),
+      shift: field == "shift" ? value : _tempVisit.shift,
+      type: field == "type" ? value : _tempVisit.type,
+      notes: field == "notes" ? value : _tempVisit.notes,
+      date: _getDateForDay(selectedDayIndex),
+      dayName: weekDays[selectedDayIndex],
     );
-
     _emitUpdatedState();
   }
 
-  // 3. حفظ ورفع الخطة
+  // إضافة الزيارة المؤقتة إلى قائمة اليوم المختار
+  void addVisitToDay() {
+    if (_tempVisit.doctor == null || _tempVisit.brick == null) {
+      emit(WeeklyPlanError("Please select Brick and Doctor first"));
+      _emitUpdatedState();
+      return;
+    }
+
+    // التحقق من عدم تكرار الدكتور في نفس اليوم
+    final currentDayVisits = _weeklyData[selectedDayIndex]!;
+    bool isDuplicate = currentDayVisits.any((v) => v.doctor == _tempVisit.doctor);
+
+    if (isDuplicate) {
+      emit(WeeklyPlanError("This doctor is already added for today!"));
+      _emitUpdatedState();
+      return;
+    }
+
+    // إضافة الزيارة وتصفير المؤقت
+    _weeklyData[selectedDayIndex]!.add(_tempVisit);
+    _tempVisit = VisitEntity(shift: "AM", type: "Single"); // إعادة تعيين للزيارة القادمة
+    
+    _emitUpdatedState();
+  }
+
+  // حذف زيارة من القائمة
+  void removeVisitFromDay(int visitIndex) {
+    _weeklyData[selectedDayIndex]!.removeAt(visitIndex);
+    _emitUpdatedState();
+  }
+
   Future<void> submitPlan() async {
     if (!isPlanComplete) {
-      emit(WeeklyPlanError("Please complete all 5 days first!"));
+      emit(WeeklyPlanError("Please add at least one visit for each day!"));
+      _emitUpdatedState();
       return;
     }
 
     emit(WeeklyPlanLoading());
     try {
-      // حفظ محلي أولاً
-      await saveVisitUseCase.call(_weeklyData);
-      // رفع الخطة للسيرفر (Supabase)
+      // تحويل الـ Map لقائمة مسطحة لإرسالها لـ UseCase
+      List<VisitEntity> allVisits = [];
+      _weeklyData.values.forEach((list) => allVisits.addAll(list));
+
+      // ملاحظة: ستحتاجين لتعديل الـ UseCase ليقبل List<VisitEntity> أو Map المحدثة
+      await saveVisitUseCase.repository.saveWeeklyPlan(_weeklyData); 
       await submitPlanUseCase.call();
+      
       emit(WeeklyPlanSuccess());
     } catch (e) {
       emit(WeeklyPlanError("Sync Failed: ${e.toString()}"));
+      _emitUpdatedState();
     }
   }
 
-  // منطق الفلترة المبدئي للدكاترة بناءً على المنطقة
   List<String> getFilteredDoctors() {
-    final brick = _weeklyData[selectedDayIndex]?.brick;
+    final brick = _tempVisit.brick;
     if (brick == "Maadi") return ["Dr. Ahmed Ali", "Dr. Sara Hassan"];
     if (brick == "Nasr City") return ["Dr. John Doe", "Dr. Mona Samy"];
     if (brick == "Dokki") return ["Dr. Khaled Zaki", "Dr. Reham"];
     return [];
   }
 
-  // Getter للتأكد من اكتمال الـ 5 أيام
-  bool get isPlanComplete => _weeklyData.values.every((v) => v.isValid);
+  // الخطة تكتمل إذا كان كل يوم فيه على الأقل زيارة واحدة (أو حسب شروطك)
+  bool get isPlanComplete => _weeklyData.values.every((list) => list.isNotEmpty);
 
-  // حساب نسبة الإنجاز للـ UI
   double get _calculateCompletion {
-    int completed = _weeklyData.values.where((v) => v.isValid).length;
-    return completed / weekDays.length;
+    int daysWithVisits = _weeklyData.values.where((list) => list.isNotEmpty).length;
+    return daysWithVisits / weekDays.length;
   }
 
-  // دالة موحدة لإرسال الحالة المحدثة للـ UI
   void _emitUpdatedState() {
     emit(WeeklyPlanUpdated(
-      weeklyData: _weeklyData,
+      weeklyData: _weeklyData, // تأكدي أن الـ State يقبل Map<int, List<VisitEntity>>
       selectedDayIndex: selectedDayIndex,
       completionRate: _calculateCompletion,
+      tempVisit: _tempVisit, // مرري الزيارة المؤقتة للـ UI ليعرض الاختيارات الحالية
     ));
+  }
+}
+
+// ملحق: إضافة دالة copyWith للـ VisitEntity إذا لم تكن موجودة لتسهيل التحديث
+extension VisitEntityCopy on VisitEntity {
+  VisitEntity copyWith({
+    String? brick,
+    String? doctor,
+    String? shift,
+    String? type,
+    String? notes,
+    String? date,
+    String? dayName,
+  }) {
+    return VisitEntity(
+      brick: brick ?? this.brick,
+      doctor: doctor ?? this.doctor,
+      shift: shift ?? this.shift,
+      type: type ?? this.type,
+      notes: notes ?? this.notes,
+      date: date ?? this.date,
+      dayName: dayName ?? this.dayName,
+    );
   }
 }

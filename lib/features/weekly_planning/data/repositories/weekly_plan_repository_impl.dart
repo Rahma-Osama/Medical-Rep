@@ -1,11 +1,8 @@
 import 'package:medical_rep/features/weekly_planning/data/data%20source/weekly_plan_local_data_source.dart';
 import 'package:medical_rep/features/weekly_planning/data/data%20source/weekly_plan_remote_data_source.dart';
+import 'package:medical_rep/features/weekly_planning/data/model/visit_model.dart';
+import 'package:medical_rep/features/weekly_planning/domain/entities/visit_entity.dart';
 import 'package:medical_rep/features/weekly_planning/domain/repositories/weekly_plan_repository.dart';
-
-
-import '../../domain/entities/visit_entity.dart';
-
-import '../model/visit_model.dart';
 
 class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
   final WeeklyPlanLocalDataSource localDS;
@@ -14,44 +11,51 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
   WeeklyPlanRepositoryImpl({required this.localDS, required this.remoteDS});
 
   @override
-  Future<void> saveLocalPlan(Map<int, VisitEntity> weeklyData) async {
-    // بناخد البيانات من الـ UI ونحولها لـ Model عشان نسيفها في Hive
+  Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
     for (var entry in weeklyData.entries) {
-      final model = VisitModel(
-        brick: entry.value.brick,
-        doctor: entry.value.doctor,
-        shift: entry.value.shift,
-        type: entry.value.type,
-        notes: entry.value.notes,
-      );
-      await localDS.saveVisitLocally(entry.key, model);
+      final List<VisitModel> modelsList = entry.value.map((entity) {
+        return VisitModel(
+          brick: entity.brick,
+          doctor: entity.doctor,
+          shift: entity.shift,
+          type: entity.type,
+          notes: entity.notes,
+          date: entity.date,
+          dayName: entity.dayName,
+        );
+      }).toList();
+
+      // تأكدي أن localDS لديه دالة تتعامل مع القائمة
+      await localDS.saveDayVisitsLocally(entry.key, modelsList);
     }
   }
 
   @override
-  Map<int, VisitEntity> getLocalPlan() {
-    // بنجيب اللي متسيف في Hive ونحوله لـ Entities عشان الـ UI يعرضه
-    final cachedModels = localDS.getCachedVisits();
-    return cachedModels.map((key, model) => MapEntry(
-      key,
-      VisitEntity(
-        brick: model.brick,
-        doctor: model.doctor,
-        shift: model.shift,
-        type: model.type,
-        notes: model.notes,
-      ),
-    ));
+  Map<int, List<VisitEntity>> getLocalPlan() {
+    final cachedModelsMap = localDS.getCachedVisits();
+    return cachedModelsMap.map((key, modelsList) => MapEntry(
+          key,
+          modelsList.map((model) => VisitEntity(
+                brick: model.brick,
+                doctor: model.doctor,
+                shift: model.shift,
+                type: model.type,
+                notes: model.notes,
+                date: model.date,
+                dayName: model.dayName,
+              )).toList(),
+        ));
   }
 
   @override
   Future<void> submitFullPlan() async {
-    // 1. نجيب الداتا المتسيفة في Hive
-    final visitsMap = localDS.getCachedVisits();
-    
-    // 2. نحولها لـ List ونبعتها للـ Remote DataSource عشان تترفع لسوبابيز
+    final Map<int, List<VisitModel>> visitsMap = localDS.getCachedVisits();
     if (visitsMap.isNotEmpty) {
-      await remoteDS.uploadPlan(visitsMap.values.toList());
+      List<VisitModel> allVisitsToUpload = [];
+      for (var dayVisits in visitsMap.values) {
+        allVisitsToUpload.addAll(dayVisits);
+      }
+      await remoteDS.uploadPlan(allVisitsToUpload); //
     } else {
       throw Exception("لا توجد بيانات محفوظة لرفعها");
     }

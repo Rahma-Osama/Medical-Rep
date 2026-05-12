@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/features/Auth/domain/repositories/auth_repository.dart';
+import 'package:medical_rep/features/admin/view/admin_page.dart';
 import 'package:medical_rep/features/weekly_planning/views/create_weekly_plan_view.dart';
 import 'package:medical_rep/features/weekly_planning/views/weekly_plan_status_view.dart';
 import '../viewmodels/login_cubit.dart';
@@ -36,19 +37,18 @@ class LoginScreen extends StatelessWidget {
               // ممكن تظهري Loading Overlay هنا لو حابة
             }
             if (state is LoginSuccess) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("تم تسجيل الدخول بنجاح!"),
-                  backgroundColor: Colors.green,
-                ),
-              );
-      
-              Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const CreatePlanScreen(),
-                        ),
-                      );
-            }
+             if (state.role == 'admin') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const AdminPanelScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const CreatePlanScreen()),
+        );
+      }
+    }
             if (state is LoginFailure) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

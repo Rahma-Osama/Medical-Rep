@@ -6,7 +6,7 @@ class CustomDaysTab extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onDaySelected;
 
-final Map<int, VisitEntity> weeklyData;
+final Map<int, List<VisitEntity>> weeklyData;
 
   const CustomDaysTab({
     super.key,
@@ -30,7 +30,7 @@ final Map<int, VisitEntity> weeklyData;
           // شرط ظهور علامة الصح: لازم الدكتور والمنتج ميكونوش null في اليوم ده
        // داخل itemBuilder في ملف custom_days_tab.dart
 // ✅ الطريقة الجديدة للتأكد من اكتمال اليوم (داخل الـ build بتاع الـ Tab)
-bool isCompleted = weeklyData[index]?.isValid ?? false;
+bool isCompleted = weeklyData[index]?.every((visit) => visit.isValid) ?? false;
 
           return GestureDetector(
             onTap: () => onDaySelected(index),
