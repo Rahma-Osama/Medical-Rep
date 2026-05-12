@@ -3,14 +3,26 @@ import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/styles/app_text_style.dart';
 
 class CustomDropdownWidget extends StatelessWidget {
-    CustomDropdownWidget({super.key,required this.label, required this.icon, this.value, required this.items, required this.onChanged});
- final String label;
-  final  IconData icon;
-   final String? value;
-   final List<String> items;
-  final  Function(String?) onChanged;
+  const CustomDropdownWidget({
+    super.key,
+    required this.label,
+    required this.icon,
+    this.value,
+    required this.items,
+    required this.onChanged,
+  });
+
+  final String label;
+  final IconData icon;
+  final String? value;
+  final List<String> items;
+  final Function(String?) onChanged;
+
   @override
   Widget build(BuildContext context) {
+    // التحقق إذا كانت القائمة فارغة
+    bool isEmpty = items.isEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -22,19 +34,24 @@ class CustomDropdownWidget extends StatelessWidget {
           ],
         ),
         DropdownButtonHideUnderline(
-          
           child: DropdownButton<String>(
             dropdownColor: AppColors.backgroundColor,
-            value: value,
+            // التأكد أن الـ value موجود فعلاً في الـ items لتجنب الـ Error الشهير في Flutter
+            value: (items.contains(value)) ? value : null,
             isExpanded: true,
-            hint:  Text("Tap to select",style:  AppTextStyle.body.copyWith(
-              color: AppColors.grayColor
-            ),),
-            items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-            onChanged: onChanged,
+            hint: Text(
+              isEmpty ? "Select area first" : "Tap to select",
+              style: AppTextStyle.body.copyWith(color: AppColors.grayColor),
+            ),
+            // لو القائمة فاضية بنخلي الـ items بـ null عشان الزرار يبقى Disabled تلقائياً
+            items: isEmpty
+                ? null
+                : items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+            // لو القائمة فاضية بنخلي الـ onChanged بـ null
+            onChanged: isEmpty ? null : onChanged,
           ),
         ),
       ],
-    );;
+    );
   }
 }

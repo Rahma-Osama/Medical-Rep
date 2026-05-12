@@ -1,0 +1,1 @@
+const MIN_VISIT_TIME=10;

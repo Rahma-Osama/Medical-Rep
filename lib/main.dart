@@ -28,6 +28,17 @@ class MedicalApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = Supabase.instance.client.auth.currentUser;
+    
+    if (user == null) {
+      return const MaterialApp(
+          debugShowCheckedModeBanner: false,
+        home: LoginScreen());
+    }
+
+    // 👈 تأكدي من كتابة ['role'] بالظبط زي ما كتبتيها في الـ SQL
+    final String? role = user.userMetadata?['role'];
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Medical Rep App',

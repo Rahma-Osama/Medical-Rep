@@ -19,8 +19,6 @@ class HomeBottomNavigationBar extends StatelessWidget {
       _NavSpec(Icons.home_rounded, 'Home'),
       _NavSpec(Icons.assignment_outlined, 'Visits'),
       _NavSpec(Icons.calendar_month_rounded, 'Planning'),
-      _NavSpec(Icons.menu_book_outlined, 'Reports'),
-      _NavSpec(Icons.menu_rounded, 'More'),
     ];
 
     return Material(
