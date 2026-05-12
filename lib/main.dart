@@ -30,10 +30,9 @@ await Supabase.initialize(
   if (!Hive.isAdapterRegistered(VisitModelAdapter().typeId)) {
     Hive.registerAdapter(VisitModelAdapter());
   }
-  await Hive.openBox<VisitModel>('weekly_plan_box');
+await Hive.openBox('weekly_plan_box'); 
 
-  // 3. إعداد الـ Dependency Injection (الربط اللي سألتي عنه)
-  // بنبني الطبقات من تحت لفوق (Data -> Domain -> Presentation)
+
   final localDS = WeeklyPlanLocalDataSourceImpl();
   final remoteDS = WeeklyPlanRemoteDataSourceImpl();
   
@@ -65,7 +64,9 @@ class MedicalApp extends StatelessWidget {
     final user = Supabase.instance.client.auth.currentUser;
     
     if (user == null) {
-      return const MaterialApp(home: LoginScreen());
+      return const MaterialApp(
+          debugShowCheckedModeBanner: false,
+        home: LoginScreen());
     }
 
     // 👈 تأكدي من كتابة ['role'] بالظبط زي ما كتبتيها في الـ SQL

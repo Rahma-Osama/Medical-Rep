@@ -30,7 +30,9 @@ final Map<int, List<VisitEntity>> weeklyData;
           // شرط ظهور علامة الصح: لازم الدكتور والمنتج ميكونوش null في اليوم ده
        // داخل itemBuilder في ملف custom_days_tab.dart
 // ✅ الطريقة الجديدة للتأكد من اكتمال اليوم (داخل الـ build بتاع الـ Tab)
-bool isCompleted = weeklyData[index]?.every((visit) => visit.isValid) ?? false;
+// لازم نتأكد إن القائمة مش فاضية الأول، وبعدين نشوف لو كل اللي فيها سليم
+bool isCompleted = (weeklyData[index]?.isNotEmpty ?? false) && 
+                   (weeklyData[index]!.every((visit) => visit.isValid));
 
           return GestureDetector(
             onTap: () => onDaySelected(index),

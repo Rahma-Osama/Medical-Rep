@@ -23,6 +23,8 @@ class VisitModel extends HiveObject {
 
   @HiveField(6)
   String? dayName;
+  @HiveField(7)
+  String status;
 
   VisitModel({
     this.brick,
@@ -32,6 +34,7 @@ class VisitModel extends HiveObject {
     this.notes = "",
     this.date,
     this.dayName,
+    this.status = "pending",
   });
 
   // التحويل لـ JSON متوافق 100% مع أسماء أعمدة الداتا بيز

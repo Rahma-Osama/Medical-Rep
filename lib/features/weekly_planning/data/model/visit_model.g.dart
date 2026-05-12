@@ -24,13 +24,14 @@ class VisitModelAdapter extends TypeAdapter<VisitModel> {
       notes: fields[4] as String?,
       date: fields[5] as String?,
       dayName: fields[6] as String?,
+      status: fields[7] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, VisitModel obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.brick)
       ..writeByte(1)
@@ -44,7 +45,9 @@ class VisitModelAdapter extends TypeAdapter<VisitModel> {
       ..writeByte(5)
       ..write(obj.date)
       ..writeByte(6)
-      ..write(obj.dayName);
+      ..write(obj.dayName)
+      ..writeByte(7)
+      ..write(obj.status);
   }
 
   @override

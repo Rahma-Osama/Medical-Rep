@@ -17,7 +17,7 @@ class VisitEntity {
     this.dayName,
   });
 
-  bool get isValid => brick != null && doctor != null;
+bool get isValid => doctor != null && doctor!.isNotEmpty && brick != null;
 
   // دالة ضرورية لتحديث القيم في الـ Cubit
   VisitEntity copyWith({

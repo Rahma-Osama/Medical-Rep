@@ -1,82 +1,91 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart'; // ✅ إضافة الـ Bloc
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/styles/app_text_style.dart';
 import 'package:medical_rep/core/widgets/custom_app_bar.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/cutom_plan_status_card.dart';
+import 'package:medical_rep/features/weekly_planning/cubit/weekly_plan_cubit.dart';
+import 'package:medical_rep/features/weekly_planning/cubit/weekly_plan_state.dart';
 
 class WeeklyPlanningView extends StatelessWidget {
   const WeeklyPlanningView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // قائمة بأسماء الأيام
+    // أسماء الأيام المقابلة للـ Index في الـ Map
     final List<String> weekDays = ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday"];
 
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
-      body: CustomScrollView(
-        slivers: [
-          const CustomAppBar(label: 'Weekly Plan Status'),
+      body: BlocBuilder<WeeklyPlanCubit, WeeklyPlanState>(
+        builder: (context, state) {
+          return CustomScrollView(
+            slivers: [
+              const CustomAppBar(label: 'Weekly Plan Status'),
 
-          /// 🔹 Content
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle("Current Week Schedule"),
-                  const SizedBox(height: 15),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+    
+                      const SizedBox(height: 15),
 
-                  // كارت زيارة السبت (مثال للبيانات الجديدة)
-                  CutomPlanStatusCard(
-                    day: 'Saturday',
-                    date: 'March 21',
-                    doctorName: 'Dr. Ahmed Ali', // أضفنا اسم الدكتور
-                    specialty: 'Cardiology', // التخصص
-                    shift: 'AM ', // الوقت
-                    clinicName: 'Elite Clinic', // اسم العيادة
-                    location: 'Alexandria, Smouha', // اللوكيشن
-                    status: 'Planned',
-                    color: Colors.green,
-                    icon: Icons.check_circle_rounded,
-                    onStartVisit: () {
-                      // Logic لبدء الزيارة
-                      print("Visit Started");
-                    },
+                      // 🔹 عرض البيانات ديناميكياً من الكيوبيت
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: weekDays.length,
+                        itemBuilder: (context, dayIndex) {
+                          // جلب قائمة الزيارات لليوم الحالي
+                          final visits = state.weeklyData[dayIndex] ?? [];
+
+                          if (visits.isEmpty) {
+                            return const SizedBox.shrink(); // لو اليوم فاضي ميعرضش حاجة
+                          }
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: visits.map((visit) {
+                              return // جوه الـ map في صفحة WeeklyPlanningView
+ Padding(
+  padding: const EdgeInsets.only(bottom: 12),
+  child: CutomPlanStatusCard(
+    day: weekDays[dayIndex],
+    date: visit.date ?? "No Date",
+    doctorName: visit.doctor ?? "Unknown Doctor",
+    specialty: visit.brick ?? "No Specialty",
+    shift: visit.shift ?? "AM",
+    clinicName: "Clinic",
+    location: visit.brick ?? "No Location",
+    // 🔹 التعديل هنا ليكون Pending
+    status: 'Pending', 
+    color: Colors.orange, // لون الانتظار
+    icon: Icons.access_time_filled_rounded, // أيقونة الساعة
+    onStartVisit: () {
+       // ممكن هنا تطلعي Snackbar تقولي "Waiting for approval"
+       print("Cannot start visit yet, pending approval");
+    },
+  ),
+);
+                            }).toList(),
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 100),
+                    ],
                   ),
-
-                  const SizedBox(height: 12),
-
-                  // كارت زيارة الأحد
-                  CutomPlanStatusCard(
-                    day: 'Sunday',
-                    date: 'March 22',
-                    doctorName: 'Dr. Sarah Mahmoud',
-                    specialty: 'Dermatology',
-                    shift: 'PM',
-                    clinicName: 'Skin Care Center',
-                    location: 'Cairo, Maadi',
-                    status: 'Pending',
-                    color: Colors.orange,
-                    icon: Icons.access_time_filled_rounded,
-                    onStartVisit: () {
-                       // Logic لبدء الزيارة
-                    },
-                  ),
-
-                  const SizedBox(height: 100), // مساحة للـ FAB لو وجد
-                ],
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
 
-  /// 🔹 Section Title
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
