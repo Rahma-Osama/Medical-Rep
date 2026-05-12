@@ -7,7 +7,7 @@ class MedicalEntity {
   final String email;
   final String address;
 
-  MedicalEntity({
+  const MedicalEntity({
     required this.name,
     required this.specialty,
     required this.category,
