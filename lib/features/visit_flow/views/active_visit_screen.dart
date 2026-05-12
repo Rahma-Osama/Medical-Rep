@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:medical_rep/core/data/repositeries/visit_repository.dart';
+import 'package:medical_rep/features/visit_flow/data/repositories/visit_repository_impl.dart';
+import 'package:medical_rep/features/visit_flow/domain/usecases/end_visit_usecase.dart';
+import 'package:medical_rep/features/visit_flow/domain/usecases/verify_visit_location_usecase.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/styles/app_text_style.dart';
 import 'package:medical_rep/core/widgets/custom_app_bar.dart';
-import 'package:medical_rep/core/widgets/custom_button_widget.dart';
 import 'package:medical_rep/core/widgets/custom_snackbar_widget.dart';
 import 'package:medical_rep/features/visit_flow/viewmodels/active_visit/active_visit_state.dart';
 import 'package:medical_rep/features/visit_flow/views/visit_feedback_screen.dart';
@@ -25,10 +26,14 @@ class ActiveVisitScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => ActiveVisitCubit(
-        repository: VisitRepositoryImpl(),
-        visit: visit,
-      ),
+      create: (_) {
+        final repository = VisitRepositoryImpl();
+        return ActiveVisitCubit(
+          verifyVisitLocation: VerifyVisitLocationUseCase(repository),
+          endVisit: EndVisitUseCase(repository),
+          visit: visit,
+        );
+      },
       child: _ActiveVisitView(visit: visit),
     );
   }

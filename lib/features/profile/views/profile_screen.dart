@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/styles/app_text_style.dart';
+import 'package:medical_rep/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:medical_rep/features/profile/domain/usecases/get_profile_usecase.dart';
 import 'package:medical_rep/features/profile/models/profile_user.dart';
+import 'package:medical_rep/features/profile/viewmodels/profile_cubit.dart';
+import 'package:medical_rep/features/profile/viewmodels/profile_state.dart';
 import 'package:medical_rep/features/profile/views/widgets/profile_header.dart';
 import 'package:medical_rep/features/profile/views/widgets/profile_info_card.dart';
 import 'package:medical_rep/features/profile/views/widgets/profile_menu_section.dart';
@@ -10,29 +15,91 @@ import 'package:medical_rep/features/profile/views/widgets/profile_summary_card.
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({
     super.key,
-    this.user,
     this.showBackButton = true,
     this.onSignOut,
+    this.getProfileUseCase,
   });
 
-  final ProfileUser? user;
+  /// Optional injection for tests / future DI container.
+  final GetProfileUseCase? getProfileUseCase;
+
   final bool showBackButton;
   final VoidCallback? onSignOut;
 
-  static ProfileUser get _defaultUser => const ProfileUser(
-        fullName: 'Ahmed Elsayed',
-        email: 'ahmed.elsayed@pharma',
-        repId: 'MR-2024-0042',
-        roleTitle: 'Senior Medical Representative',
-        regionLabel: 'Region 4',
-        phone: '+20 100 000 0000',
-        territory: 'Alexandria & North Coast',
-      );
+  @override
+  Widget build(BuildContext context) {
+    final useCase = getProfileUseCase ?? GetProfileUseCase(ProfileRepositoryImpl());
+    return BlocProvider(
+      create: (_) => ProfileCubit(useCase)..load(),
+      child: _ProfileView(
+        showBackButton: showBackButton,
+        onSignOut: onSignOut,
+      ),
+    );
+  }
+}
+
+class _ProfileView extends StatelessWidget {
+  const _ProfileView({
+    required this.showBackButton,
+    this.onSignOut,
+  });
+
+  final bool showBackButton;
+  final VoidCallback? onSignOut;
 
   @override
   Widget build(BuildContext context) {
-    final data = user ?? _defaultUser;
+    return BlocBuilder<ProfileCubit, ProfileState>(
+      builder: (context, state) {
+        return switch (state) {
+          ProfileLoading() => Scaffold(
+              backgroundColor: AppColors.backgroundColor,
+              body: const Center(child: CircularProgressIndicator()),
+            ),
+          ProfileError(:final message) => Scaffold(
+              backgroundColor: AppColors.backgroundColor,
+              body: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(message, textAlign: TextAlign.center),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: () => context.read<ProfileCubit>().load(),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ProfileLoaded(:final user) => _ProfileScrollBody(
+              user: user,
+              showBackButton: showBackButton,
+              onSignOut: onSignOut,
+            ),
+        };
+      },
+    );
+  }
+}
 
+class _ProfileScrollBody extends StatelessWidget {
+  const _ProfileScrollBody({
+    required this.user,
+    required this.showBackButton,
+    this.onSignOut,
+  });
+
+  final ProfileUser user;
+  final bool showBackButton;
+  final VoidCallback? onSignOut;
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       body: SingleChildScrollView(
@@ -45,11 +112,11 @@ class ProfileScreen extends StatelessWidget {
               title: 'Profile',
             ),
             ProfileSummaryCard(
-              user: data,
+              user: user,
               onEditPhoto: () {},
             ),
             const SizedBox(height: 8),
-            ProfileInfoCard(user: data),
+            ProfileInfoCard(user: user),
             const SizedBox(height: 24),
             ProfileMenuSection(
               title: 'Account',
@@ -58,17 +125,6 @@ class ProfileScreen extends StatelessWidget {
                   icon: Icons.person_outline_rounded,
                   title: 'Edit profile',
                   subtitle: 'Name, phone, territory',
-                  onTap: () {},
-                ),
-                ProfileMenuItem(
-                  icon: Icons.lock_outline_rounded,
-                  title: 'Security',
-                  subtitle: 'Password & devices',
-                  onTap: () {},
-                ),
-                ProfileMenuItem(
-                  icon: Icons.notifications_outlined,
-                  title: 'Notifications',
                   onTap: () {},
                 ),
               ],

@@ -6,7 +6,6 @@ import 'package:medical_rep/features/home/views/widgets/home_profile_progress_ca
 import 'package:medical_rep/features/home/views/widgets/home_recent_visits_section.dart';
 import 'package:medical_rep/features/home/views/widgets/home_services_section.dart';
 import 'package:medical_rep/features/home/views/widgets/home_stats_row.dart';
-import 'package:medical_rep/features/profile/models/profile_user.dart';
 import 'package:medical_rep/features/profile/views/profile_screen.dart';
 import 'package:medical_rep/features/weekly_planning/views/create_weekly_plan_view.dart';
 import 'package:medical_rep/features/weekly_planning/views/weekly_plan_status_view.dart';
@@ -52,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.paddingOf(context).top;
-    final stackHeight = topInset + 200 + 300;
+    final stackHeight = topInset + 200+20;
 
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
@@ -63,17 +62,8 @@ class _HomeScreenState extends State<HomeScreen> {
           _placeholderTab('Visits'),
           _planningTab(context),
           _placeholderTab('Reports'),
-          ProfileScreen(
+          const ProfileScreen(
             showBackButton: false,
-            user: ProfileUser(
-              fullName: widget.userName,
-              email: widget.email,
-              repId: widget.repId,
-              roleTitle: 'Senior Medical Representative',
-              regionLabel: widget.regionLabel,
-              phone: '+20 100 000 0000',
-              territory: 'Alexandria & North Coast',
-            ),
           ),
         ],
       ),
@@ -108,23 +98,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: HomeProfileProgressCard(
                     email: widget.email,
                     repId: widget.repId,
-                    visitsCurrent: 6,
-                    visitsPlanned: 10,
-                    monthlyTargetPercent: 56,
                     onProfile: () {
                       Navigator.of(context).push(
                         MaterialPageRoute<void>(
-                          builder: (_) => ProfileScreen(
-                            user: ProfileUser(
-                              fullName: widget.userName,
-                              email: widget.email,
-                              repId: widget.repId,
-                              roleTitle: 'Senior Medical Representative',
-                              regionLabel: widget.regionLabel,
-                              phone: '+20 100 000 0000',
-                              territory: 'Alexandria & North Coast',
-                            ),
-                          ),
+                          builder: (_) => const ProfileScreen(),
                         ),
                       );
                     },
@@ -160,13 +137,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   onViewAll: () {},
                   onDoctorsList: () {},
                   onPharmacyList: () {},
-                  onAddVisit: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const CreatePlanScreen(),
-                      ),
-                    );
-                  },
                   onWeeklyPlanning: () {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(

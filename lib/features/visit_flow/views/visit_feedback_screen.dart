@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:medical_rep/core/data/repositeries/visit_repository.dart';
+import 'package:medical_rep/features/visit_flow/data/repositories/visit_repository_impl.dart';
+import 'package:medical_rep/features/visit_flow/domain/usecases/submit_visit_feedback_usecase.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/styles/app_text_style.dart';
 import 'package:medical_rep/core/widgets/custom_app_bar.dart';
@@ -25,11 +26,14 @@ class VisitFeedbackScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => VisitFeedbackCubit(
-        repository: VisitRepositoryImpl(),
-        visitId: visitId,
-        prefillSampleGiven: prefillSampleGiven,
-      ),
+      create: (_) {
+        final repository = VisitRepositoryImpl();
+        return VisitFeedbackCubit(
+          submitVisitFeedback: SubmitVisitFeedbackUseCase(repository),
+          visitId: visitId,
+          prefillSampleGiven: prefillSampleGiven,
+        );
+      },
       child: const _VisitFeedbackView(),
     );
   }

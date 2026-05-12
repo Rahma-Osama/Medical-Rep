@@ -8,7 +8,6 @@ class HomeServicesSection extends StatelessWidget {
     this.onViewAll,
     this.onDoctorsList,
     this.onPharmacyList,
-    this.onAddVisit,
     this.onWeeklyPlanning,
     this.onDrafts,
   });
@@ -16,7 +15,6 @@ class HomeServicesSection extends StatelessWidget {
   final VoidCallback? onViewAll;
   final VoidCallback? onDoctorsList;
   final VoidCallback? onPharmacyList;
-  final VoidCallback? onAddVisit;
   final VoidCallback? onWeeklyPlanning;
   final VoidCallback? onDrafts;
 
@@ -72,13 +70,6 @@ class HomeServicesSection extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            Expanded(
-              child: _ServiceTile(
-                icon: Icons.add_circle_outline_rounded,
-                label: 'Add Visit',
-                onTap: onAddVisit,
-              ),
-            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -107,11 +98,7 @@ class HomeServicesSection extends StatelessWidget {
 }
 
 class _ServiceTile extends StatelessWidget {
-  const _ServiceTile({
-    required this.icon,
-    required this.label,
-    this.onTap,
-  });
+  const _ServiceTile({required this.icon, required this.label, this.onTap});
 
   final IconData icon;
   final String label;

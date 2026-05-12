@@ -1,12 +1,12 @@
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
-import 'package:medical_rep/core/data/repositeries/visit_repository.dart';
+import 'package:medical_rep/core/error/app_failure.dart';
+import 'package:medical_rep/features/visit_flow/domain/usecases/submit_visit_feedback_usecase.dart';
 import 'package:medical_rep/features/visit_flow/models/visit_feedback_model.dart';
 import 'package:medical_rep/features/visit_flow/viewmodels/visit_feedback/visit_feedback_states.dart';
 
-
 class VisitFeedbackCubit extends Cubit<VisitFeedbackState> {
-  final VisitRepository _repository;
+  final SubmitVisitFeedbackUseCase _submitVisitFeedback;
   final String visitId;
   final bool prefillSampleGiven;
 
@@ -14,11 +14,11 @@ class VisitFeedbackCubit extends Cubit<VisitFeedbackState> {
   final formKey = GlobalKey<FormState>();
 
   VisitFeedbackCubit({
-    required VisitRepository repository,
+    required SubmitVisitFeedbackUseCase submitVisitFeedback,
     required this.visitId,
     required this.prefillSampleGiven,
-  })  : _repository = repository,
-        super(VisitFeedbackInitial(sampleGiven: prefillSampleGiven));
+  }) : _submitVisitFeedback = submitVisitFeedback,
+       super(VisitFeedbackInitial(sampleGiven: prefillSampleGiven));
 
   VisitFeedbackInitial get _current => state as VisitFeedbackInitial;
 
@@ -40,7 +40,8 @@ class VisitFeedbackCubit extends Cubit<VisitFeedbackState> {
   }
 
   void removeAttachment(int index) {
-    final updated = List<String>.from(_current.attachmentPaths)..removeAt(index);
+    final updated = List<String>.from(_current.attachmentPaths)
+      ..removeAt(index);
     emit(_current.copyWith(attachmentPaths: updated));
   }
 
@@ -50,22 +51,28 @@ class VisitFeedbackCubit extends Cubit<VisitFeedbackState> {
     final current = _current;
     emit(VisitFeedbackLoading());
 
-    try {
-      final feedback = VisitFeedbackModel(
-        visitId: visitId,
-        interestLevel: current.interestLevel,
-        sampleGiven: current.sampleGiven,
-        followUpRequired: current.followUpRequired,
-        notes: notesController.text.trim(),
-        attachmentPaths: current.attachmentPaths,
-        submittedAt: DateTime.now(),
-      );
-      await _repository.submitFeedback(feedback);
-      emit(VisitFeedbackSuccess());
-    } catch (e) {
-      emit(VisitFeedbackFailure(e.toString()));
-    }
+    final feedback = VisitFeedbackModel(
+      visitId: visitId,
+      interestLevel: current.interestLevel,
+      sampleGiven: current.sampleGiven,
+      followUpRequired: current.followUpRequired,
+      notes: notesController.text.trim(),
+      attachmentPaths: current.attachmentPaths,
+      submittedAt: DateTime.now(),
+    );
+
+    final result = await _submitVisitFeedback(feedback);
+    result.when(
+      success: (_) => emit(VisitFeedbackSuccess()),
+      onFailure: (AppFailure f) => emit(VisitFeedbackFailure(_toUiMessage(f))),
+    );
   }
+
+  String _toUiMessage(AppFailure failure) {
+    // Keeps UI states simple; later you can carry the whole failure.
+    return '${failure.title}: ${failure.message}';
+  }
+
 
   @override
   Future<void> close() {

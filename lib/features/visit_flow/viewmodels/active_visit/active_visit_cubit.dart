@@ -1,23 +1,27 @@
 import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
-import 'package:medical_rep/core/data/repositeries/visit_repository.dart';
-import 'package:medical_rep/features/visit_flow/models/visit_task_model.dart';
+import 'package:medical_rep/core/error/app_failure.dart';
+import 'package:medical_rep/features/visit_flow/domain/usecases/end_visit_usecase.dart';
+import 'package:medical_rep/features/visit_flow/domain/usecases/verify_visit_location_usecase.dart';
 import 'package:medical_rep/features/visit_flow/viewmodels/active_visit/active_visit_state.dart';
 import '../../models/visit_model.dart';
 
 
 class ActiveVisitCubit extends Cubit<ActiveVisitState> {
-  final VisitRepository _repository;
+  final VerifyVisitLocationUseCase _verifyVisitLocation;
+  final EndVisitUseCase _endVisit;
   final VisitModel visit;
 
   Timer? _timer;
   final notesController = TextEditingController();
 
   ActiveVisitCubit({
-    required VisitRepository repository,
+    required VerifyVisitLocationUseCase verifyVisitLocation,
+    required EndVisitUseCase endVisit,
     required this.visit,
-  })  : _repository = repository,
+  })  : _verifyVisitLocation = verifyVisitLocation,
+        _endVisit = endVisit,
         super(ActiveVisitState(tasks: VisitModel.defaultTasks)) {
     _startTimer();
     verifyLocation();
@@ -31,10 +35,18 @@ class ActiveVisitCubit extends Cubit<ActiveVisitState> {
 
   Future<void> verifyLocation() async {
     emit(state.copyWith(locationStatus: LocationStatus.verifying));
-    final isVerified = await _repository.verifyLocation(visit.location);
-    emit(state.copyWith(
-      locationStatus: isVerified ? LocationStatus.verified : LocationStatus.failed,
-    ));
+    final result = await _verifyVisitLocation(visit.location);
+    result.when(
+      success: (isVerified) {
+        emit(state.copyWith(
+          locationStatus: isVerified ? LocationStatus.verified : LocationStatus.failed,
+        ));
+      },
+      onFailure: (AppFailure f) {
+        emit(state.copyWith(locationStatus: LocationStatus.failed));
+        _handleFailureSideEffects(f);
+      },
+    );
   }
 
   void toggleTask(String taskId) {
@@ -55,8 +67,18 @@ class ActiveVisitCubit extends Cubit<ActiveVisitState> {
 
   Future<void> endVisit() async {
     emit(state.copyWith(isEndingVisit: true));
-    await _repository.endVisit(visit.visitId, DateTime.now());
+    final result = await _endVisit(visit.visitId, DateTime.now());
     emit(state.copyWith(isEndingVisit: false));
+    result.when(
+      success: (_) {},
+      onFailure: _handleFailureSideEffects,
+    );
+  }
+
+  void _handleFailureSideEffects(AppFailure failure) {
+    // Intentionally minimal: keep cubit pure-ish.
+    // If requiresReAuth, you can emit a dedicated state to trigger navigation.
+    // For now, do nothing.
   }
 
   String get formattedTime {
