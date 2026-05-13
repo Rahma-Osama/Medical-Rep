@@ -1,12 +1,31 @@
 import 'package:get_it/get_it.dart';
+import '../../features/home/data/home_dashboard_repository.dart';
 import '../../features/doctor_and_pharmacy/data/repositories_impl/medical_repository_impl.dart';
 import '../../features/doctor_and_pharmacy/domain/repositories/medical_repository.dart';
 import '../../features/doctor_and_pharmacy/domain/use_cases/get_medical_entities_use_case.dart';
 import '../../features/doctor_and_pharmacy/presentation/cubit/medical_cubit.dart';
+import '../../features/weekly_planning/cubit/weekly_plan_cubit.dart';
+import '../../features/weekly_planning/data/data%20source/weekly_plan_local_data_source.dart';
+import '../../features/weekly_planning/data/data%20source/weekly_plan_remote_data_source.dart';
+import '../../features/weekly_planning/data/repositories/weekly_plan_repository_impl.dart';
+import '../../features/weekly_planning/domain/repositories/weekly_plan_repository.dart';
+import '../../features/weekly_planning/domain/usecases/save_visit_usecase.dart';
+import '../../features/weekly_planning/domain/usecases/submit_plan_usecase.dart';
+import '../../features/profile/data/repositories/profile_repository_impl.dart';
+import '../../features/profile/domain/repositories/profile_repository.dart';
 
 final getIt = GetIt.instance;
 
 void setupServiceLocator() {
+  getIt.registerLazySingleton<ProfileRepository>(
+    () => ProfileRepositoryImpl(),
+  );
+  getIt.registerLazySingleton<HomeDashboardRepository>(
+    () => HomeDashboardRepositoryImpl(
+      profileRepository: getIt<ProfileRepository>(),
+    ),
+  );
+
   getIt.registerLazySingleton<MedicalRepository>(
         () => MedicalRepositoryImpl(),
   );
@@ -17,5 +36,30 @@ void setupServiceLocator() {
 
   getIt.registerFactory<MedicalCubit>(
         () => MedicalCubit(getIt<GetMedicalEntitiesUseCase>()),
+  );
+
+  getIt.registerLazySingleton<WeeklyPlanLocalDataSource>(
+    () => WeeklyPlanLocalDataSourceImpl(),
+  );
+  getIt.registerLazySingleton<WeeklyPlanRemoteDataSource>(
+    () => WeeklyPlanRemoteDataSourceImpl(),
+  );
+  getIt.registerLazySingleton<WeeklyPlanRepository>(
+    () => WeeklyPlanRepositoryImpl(
+      localDS: getIt<WeeklyPlanLocalDataSource>(),
+      remoteDS: getIt<WeeklyPlanRemoteDataSource>(),
+    ),
+  );
+  getIt.registerLazySingleton<SaveVisitUseCase>(
+    () => SaveVisitUseCase(getIt<WeeklyPlanRepository>()),
+  );
+  getIt.registerLazySingleton<SubmitPlanUseCase>(
+    () => SubmitPlanUseCase(getIt<WeeklyPlanRepository>()),
+  );
+  getIt.registerFactory<WeeklyPlanCubit>(
+    () => WeeklyPlanCubit(
+      saveVisitUseCase: getIt<SaveVisitUseCase>(),
+      submitPlanUseCase: getIt<SubmitPlanUseCase>(),
+    ),
   );
 }

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:medical_rep/core/services/services.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
+import 'package:medical_rep/features/home/data/home_dashboard_repository.dart';
+import 'package:medical_rep/features/home/data/models/home_dashboard_snapshot.dart';
 import 'package:medical_rep/features/home/views/widgets/home_bottom_navigation_bar.dart';
 import 'package:medical_rep/features/home/views/widgets/home_header_section.dart';
 import 'package:medical_rep/features/home/views/widgets/home_profile_progress_card.dart';
@@ -11,20 +14,7 @@ import 'package:medical_rep/features/weekly_planning/views/create_weekly_plan_vi
 import 'package:medical_rep/features/weekly_planning/views/weekly_plan_status_view.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({
-    super.key,
-    this.userName = 'Ahmed Elsayed',
-    this.roleLine = 'Senior Medical Rep · Region 4',
-    this.regionLabel = 'Region 4',
-    this.email = 'ahmed.elsayed@pharma',
-    this.repId = 'MR-2024-0042',
-  });
-
-  final String userName;
-  final String roleLine;
-  final String regionLabel;
-  final String email;
-  final String repId;
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -32,26 +22,48 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _navIndex = 0;
+  HomeDashboardSnapshot? _dashboard;
+  bool _loadingDashboard = true;
+  String? _dashboardError;
 
-  static final List<HomeRecentVisitItem> _sampleVisits = [
-    HomeRecentVisitItem(
-      leadingIcon: Icons.medical_services_outlined,
-      title: 'Dr. Sara Hassan',
-      subtitle: 'Cardiologist · 9:30 AM',
-      statusLabel: 'Completed',
-    ),
-    HomeRecentVisitItem(
-      leadingIcon: Icons.medication_outlined,
-      title: 'Al-Noor Pharmacy',
-      subtitle: 'Pharmacy Visit · 11:00 AM',
-      statusLabel: 'Completed',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboard();
+  }
+
+  Future<void> _loadDashboard() async {
+    setState(() {
+      _loadingDashboard = true;
+      _dashboardError = null;
+    });
+    try {
+      final data = await getIt<HomeDashboardRepository>().loadDashboard();
+      if (!mounted) return;
+      setState(() {
+        _dashboard = data;
+        _loadingDashboard = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _dashboardError = e.toString();
+        _loadingDashboard = false;
+      });
+    }
+  }
+
+  String _greeting() {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Good Morning';
+    if (h < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  }
 
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.paddingOf(context).top;
-    final stackHeight = topInset + 200+20;
+    final stackHeight = topInset + 200 + 20;
 
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
@@ -74,90 +86,135 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHomeScroll(BuildContext context, double topInset, double stackHeight) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            height: stackHeight,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                HomeHeaderSection(
-                  greeting: 'Good Morning',
-                  userName: widget.userName,
-                  roleLine: widget.roleLine,
-                  notificationCount: 2,
-                ),
-                Positioned(
-                  left: 20,
-                  right: 20,
-                  top: 118 + topInset,
-                  child: HomeProfileProgressCard(
-                    email: widget.email,
-                    repId: widget.repId,
-                    onProfile: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const ProfileScreen(),
-                        ),
-                      );
-                    },
-                    onQrTap: () {},
-                    onSummaryTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const WeeklyPlanningView(),
-                        ),
-                      );
-                    },
-                    onTargetTap: () {},
+  Widget _buildHomeScroll(
+    BuildContext context,
+    double topInset,
+    double stackHeight,
+  ) {
+    final profile = _dashboard?.profile;
+    final userName = profile?.fullName ?? '…';
+    final roleLine = profile != null
+        ? '${profile.roleTitle} · ${profile.regionLabel}'
+        : '…';
+    final email = profile?.email ?? '…';
+    final repId = profile?.repId ?? '…';
+
+    return RefreshIndicator(
+      onRefresh: _loadDashboard,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: stackHeight,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  HomeHeaderSection(
+                    greeting: _greeting(),
+                    userName: userName,
+                    roleLine: roleLine,
+                    notificationCount: 0,
                   ),
-                ),
-              ],
+                  Positioned(
+                    left: 20,
+                    right: 20,
+                    top: 118 + topInset,
+                    child: HomeProfileProgressCard(
+                      email: email,
+                      repId: repId,
+                      onProfile: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const ProfileScreen(),
+                          ),
+                        );
+                      },
+                      onQrTap: () {},
+                      onSummaryTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const WeeklyPlanningView(),
+                          ),
+                        );
+                      },
+                      onTargetTap: () {},
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
-                HomeStatsRow(
-                  visitsToday: 6,
-                  visitsPlanned: 10,
-                  pendingDrafts: 3,
-                  weekVisitsDone: 28,
-                  onDraftsTap: () => setState(() => _navIndex = 1),
-                ),
-                const SizedBox(height: 24),
-                HomeServicesSection(
-                  onViewAll: () {},
-                  onDoctorsList: () {},
-                  onPharmacyList: () {},
-                  onWeeklyPlanning: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const CreatePlanScreen(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_dashboardError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Could not load dashboard: $_dashboardError',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.errorColor,
+                          ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  if (_loadingDashboard && _dashboard == null)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       ),
-                    );
-                  },
-                  onDrafts: () => setState(() => _navIndex = 1),
-                ),
-                const SizedBox(height: 28),
-                HomeRecentVisitsSection(
-                  items: _sampleVisits,
-                  onSeeAll: () {},
-                ),
-              ],
+                    )
+                  else
+                    HomeStatsRow(
+                      visitsToday: _dashboard?.visitsDoneToday ?? 0,
+                      visitsPlanned: _dashboard?.visitsPlannedToday ?? 0,
+                      pendingDrafts: _dashboard?.pendingDrafts ?? 0,
+                      weekVisitsDone: _dashboard?.weekVisitsDone ?? 0,
+                      onDraftsTap: () => setState(() => _navIndex = 1),
+                    ),
+                  const SizedBox(height: 24),
+                  HomeServicesSection(
+                    onViewAll: () {},
+                    onDoctorsList: () {},
+                    onPharmacyList: () {},
+                    onWeeklyPlanning: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const CreatePlanScreen(),
+                        ),
+                      );
+                    },
+                    onDrafts: () => setState(() => _navIndex = 1),
+                  ),
+                  const SizedBox(height: 28),
+                  HomeRecentVisitsSection(
+                    items: _dashboard?.recentVisits.isNotEmpty == true
+                        ? _dashboard!.recentVisits
+                        : _emptyRecentPlaceholder,
+                    onSeeAll: () {},
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+
+  static const List<HomeRecentVisitItem> _emptyRecentPlaceholder = [
+    HomeRecentVisitItem(
+      leadingIcon: Icons.event_note_outlined,
+      title: 'No visits yet',
+      subtitle: 'Plan or complete visits to see them here',
+      statusLabel: '—',
+    ),
+  ];
 
   Widget _planningTab(BuildContext context) {
     return Center(

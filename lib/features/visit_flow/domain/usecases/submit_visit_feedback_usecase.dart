@@ -1,6 +1,6 @@
 import 'package:medical_rep/core/error/result.dart';
 import 'package:medical_rep/features/visit_flow/domain/repositories/visit_repository.dart';
-import 'package:medical_rep/features/visit_flow/models/visit_feedback_model.dart';
+import '../../data/models/visit_data_models.dart';
 
 class SubmitVisitFeedbackUseCase {
   final VisitRepository _repository;

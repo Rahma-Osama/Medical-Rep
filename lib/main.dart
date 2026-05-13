@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:medical_rep/features/weekly_planning/data/model/visit_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Imports الخاصة بمشروعك
 import 'package:medical_rep/core/services/services.dart';
 import 'package:medical_rep/features/doctor_and_pharmacy/presentation/cubit/medical_cubit.dart';
 import 'package:medical_rep/features/doctor_and_pharmacy/presentation/views/entities_list_page.dart';
+
+import 'features/Auth/views/LoginView.dart';
 
 void main() async {
   // 1. التأكد من تهيئة الـ Widgets
@@ -16,6 +20,14 @@ void main() async {
     url: 'https://chhwbitslfgqmlkuubsr.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNoaHdiaXRzbGZncW1sa3V1YnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MDAxMzgsImV4cCI6MjA5NDA3NjEzOH0.g2cZBSw3uBXJb7sq2SYOEyGgh2rNwXlva03OviOwmcI',
   );
+
+  await Hive.initFlutter();
+  if (!Hive.isAdapterRegistered(0)) {
+    Hive.registerAdapter(VisitModelAdapter());
+  }
+  if (!Hive.isBoxOpen('weekly_plan_box')) {
+    await Hive.openBox('weekly_plan_box');
+  }
 
   // 3. تهيئة الـ Service Locator (الـ GetIt)
   setupServiceLocator();
@@ -35,9 +47,6 @@ class MedicalApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
         home: LoginScreen());
     }
-
-    // 👈 تأكدي من كتابة ['role'] بالظبط زي ما كتبتيها في الـ SQL
-    final String? role = user.userMetadata?['role'];
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,

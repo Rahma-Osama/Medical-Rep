@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:medical_rep/core/services/services.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
-import 'package:medical_rep/core/styles/app_text_style.dart';
 import 'package:medical_rep/core/widgets/custom_app_bar.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/cutom_plan_status_card.dart';
 import 'package:medical_rep/features/weekly_planning/cubit/weekly_plan_cubit.dart';
@@ -12,7 +12,18 @@ class WeeklyPlanningView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // أسماء الأيام المقابلة للـ Index في الـ Map
+    return BlocProvider(
+      create: (_) => getIt<WeeklyPlanCubit>(),
+      child: const _WeeklyPlanningBody(),
+    );
+  }
+}
+
+class _WeeklyPlanningBody extends StatelessWidget {
+  const _WeeklyPlanningBody();
+
+  @override
+  Widget build(BuildContext context) {
     final List<String> weekDays = ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday"];
 
     return Scaffold(
@@ -56,17 +67,14 @@ class WeeklyPlanningView extends StatelessWidget {
     date: visit.date ?? "No Date",
     doctorName: visit.doctor ?? "Unknown Doctor",
     specialty: visit.brick ?? "No Specialty",
-    shift: visit.shift ?? "AM",
+    shift: visit.shift,
     clinicName: "Clinic",
     location: visit.brick ?? "No Location",
     // 🔹 التعديل هنا ليكون Pending
     status: 'Pending', 
     color: Colors.orange, // لون الانتظار
     icon: Icons.access_time_filled_rounded, // أيقونة الساعة
-    onStartVisit: () {
-       // ممكن هنا تطلعي Snackbar تقولي "Waiting for approval"
-       print("Cannot start visit yet, pending approval");
-    },
+    onStartVisit: () {},
   ),
 );
                             }).toList(),
@@ -83,13 +91,6 @@ class WeeklyPlanningView extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: AppTextStyle.title.copyWith(color: AppColors.grayColor),
     );
   }
 }

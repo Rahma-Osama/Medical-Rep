@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:medical_rep/core/services/services.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/styles/app_text_style.dart';
 import 'package:medical_rep/core/widgets/custom_app_bar.dart';
@@ -10,11 +11,23 @@ import 'package:medical_rep/features/weekly_planning/cubit/weekly_plan_state.dar
 import 'package:medical_rep/features/weekly_planning/domain/entities/visit_entity.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/custom_days_tab.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/custom_dropdown_widget.dart';
-import 'package:medical_rep/features/weekly_planning/views/widgets/segmented_controll_widget.dart'; 
+import 'package:medical_rep/features/weekly_planning/views/widgets/segmented_controll_widget.dart';
 import 'package:medical_rep/features/weekly_planning/views/weekly_plan_status_view.dart';
 
 class CreatePlanScreen extends StatelessWidget {
   const CreatePlanScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => getIt<WeeklyPlanCubit>(),
+      child: const _CreatePlanBody(),
+    );
+  }
+}
+
+class _CreatePlanBody extends StatelessWidget {
+  const _CreatePlanBody();
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +41,9 @@ class CreatePlanScreen extends StatelessWidget {
           );
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const WeeklyPlanningView()),
+            MaterialPageRoute<void>(
+              builder: (_) => const WeeklyPlanningView(),
+            ),
           );
         } else if (state is WeeklyPlanError) {
           AppSnackBar.showError(context: context, message: state.message);
@@ -41,7 +56,6 @@ class CreatePlanScreen extends StatelessWidget {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
-        // جلب قائمة الزيارات لليوم المختار حالياً
         final currentDayVisits = state.weeklyData[state.selectedDayIndex] ?? [];
 
         return Scaffold(
@@ -55,7 +69,6 @@ class CreatePlanScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 1. اختيار اليوم (التعديل اللي عملناه لليست)
                       _buildSectionTitle("Select Day"),
                       const SizedBox(height: 12),
                       CustomDaysTab(
@@ -64,37 +77,27 @@ class CreatePlanScreen extends StatelessWidget {
                         onDaySelected: (index) => cubit.selectDay(index),
                       ),
                       const SizedBox(height: 25),
-
-                      // 2. الفورم الأصلي بتاعك (زي ما هو بالظبط)
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: _containerDecoration(),
                         child: Column(
                           children: [
-                            // 1. Dropdown المنطقة (Brick/Area)
-CustomDropdownWidget(
-  label: "Select Brick", // المسمى في الـ UI
-  icon: Icons.location_city_outlined,
-  items: context.read<WeeklyPlanCubit>().allBricks, // دي اللي شايلة الـ area_name حالياً
-  value: state.tempVisit.brick,
-  onChanged: (val) => cubit.tempUpdateField("brick", val),
-),
-const Divider(height: 30),
-
-// 2. Dropdown الدكتور (Doctor)
-CustomDropdownWidget(
-  label: "Select Doctor",
-  icon: Icons.person_search_outlined,
-  // التأكد من عرض رسالة تنبيه إذا لم يتم اختيار منطقة بعد
-
-  // استخدام القائمة المفلترة من الـ Cubit
-  items: context.read<WeeklyPlanCubit>().filteredDoctors, 
-  value: state.tempVisit.doctor,
-  onChanged: (val) => cubit.tempUpdateField("doctor", val),
-),
+                            CustomDropdownWidget(
+                              label: "Select Brick",
+                              icon: Icons.location_city_outlined,
+                              items: context.read<WeeklyPlanCubit>().allBricks,
+                              value: state.tempVisit.brick,
+                              onChanged: (val) => cubit.tempUpdateField("brick", val),
+                            ),
+                            const Divider(height: 30),
+                            CustomDropdownWidget(
+                              label: "Select Doctor",
+                              icon: Icons.person_search_outlined,
+                              items: context.read<WeeklyPlanCubit>().filteredDoctors,
+                              value: state.tempVisit.doctor,
+                              onChanged: (val) => cubit.tempUpdateField("doctor", val),
+                            ),
                             const SizedBox(height: 20),
-                            
-                    
                             SegmentedControllWidget(
                               label: "Select Shift",
                               option: const ["AM", "PM"],
@@ -102,17 +105,13 @@ CustomDropdownWidget(
                               onSelected: (val) => cubit.tempUpdateField("shift", val!),
                             ),
                             const SizedBox(height: 20),
-                            
                             SegmentedControllWidget(
                               label: "Visit Type",
                               option: const ["Single", "Double"],
                               selected: state.tempVisit.type,
                               onSelected: (val) => cubit.tempUpdateField("type", val!),
                             ),
-                            
                             const SizedBox(height: 30),
-                            
-                            // زرار الإضافة للقائمة اليومية
                             CustomElevatedButton(
                               text: "Add Visit to Day",
                               onPressed: () => cubit.addVisitToDay(),
@@ -120,24 +119,18 @@ CustomDropdownWidget(
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 25),
-                      
-                      // 3. عرض قائمة الزيارات المضافة لليوم ده (الـ List اللي طلبتيها)
                       if (currentDayVisits.isNotEmpty) ...[
                         _buildSectionTitle("Current Day Visits"),
                         const SizedBox(height: 12),
                         _buildVisitsList(currentDayVisits, cubit),
                       ],
-
                       const SizedBox(height: 30),
-
-                      // 4. زرار الإرسال النهائي للخطة كاملة
                       state is WeeklyPlanLoading
                           ? const Center(child: CircularProgressIndicator())
                           : CustomElevatedButton(
                               text: "Submit Full Plan",
-                             onPressed: !cubit.isPlanComplete ? null : () => cubit.submitPlan(),
+                              onPressed: !cubit.isPlanComplete ? null : () => cubit.submitPlan(),
                             ),
                       const SizedBox(height: 50),
                     ],
@@ -151,7 +144,6 @@ CustomDropdownWidget(
     );
   }
 
-  // ويدجت عرض القائمة (الـ List اللي بتظهر تحت الفورم)
   Widget _buildVisitsList(List<VisitEntity> visits, WeeklyPlanCubit cubit) {
     return ListView.builder(
       shrinkWrap: true,
@@ -185,7 +177,7 @@ CustomDropdownWidget(
       borderRadius: BorderRadius.circular(24),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.05),
+          color: Colors.black.withValues(alpha: 0.05),
           blurRadius: 20,
           offset: const Offset(0, 10),
         ),

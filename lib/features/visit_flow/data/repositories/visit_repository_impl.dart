@@ -2,7 +2,7 @@ import 'package:medical_rep/core/error/app_exception.dart';
 import 'package:medical_rep/core/error/error_mapper.dart';
 import 'package:medical_rep/core/error/result.dart';
 import 'package:medical_rep/features/visit_flow/domain/repositories/visit_repository.dart';
-import 'package:medical_rep/features/visit_flow/models/visit_feedback_model.dart';
+import '../models/visit_data_models.dart';
 
 class VisitRepositoryImpl implements VisitRepository {
   @override

@@ -36,11 +36,12 @@ dependencies:
   cupertino_icons: ^1.0.9
   bloc: ^9.2.0
   flutter_bloc: ^9.1.1
-  cupertino_icons: ^1.0.8
-  flutter_bloc: ^9.1.1
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   supabase_flutter: ^2.12.4
+  postgrest: ^2.7.0
+  get_it: ^9.2.1
+  equatable: ^2.0.8
 
 dev_dependencies:
   flutter_test:
