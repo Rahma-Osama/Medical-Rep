@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/features/Auth/domain/repositories/auth_repository.dart';
 import 'package:medical_rep/features/admin/view/admin_page.dart';
+import 'package:medical_rep/features/home/views/home_screen.dart';
 import 'package:medical_rep/features/weekly_planning/views/create_weekly_plan_view.dart';
 import 'package:medical_rep/features/weekly_planning/views/weekly_plan_status_view.dart';
 import '../viewmodels/login_cubit.dart';
@@ -16,18 +17,17 @@ class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
   @override
-
   Widget build(BuildContext context) {
     return BlocProvider(
       // تهيئة الـ Repository والـ Cubit
-     create: (_) => LoginCubit(
-  // بنستخدم الـ Implementation في الـ Data Layer 
-  // عشان نغذي الـ Interface اللي الـ Cubit مستنيه
-  AuthRepositoryImpl(
-    AuthRemoteDataSource(),
-    AuthLocalDataSource(),
-  ),
-),
+      create: (_) => LoginCubit(
+        // بنستخدم الـ Implementation في الـ Data Layer
+        // عشان نغذي الـ Interface اللي الـ Cubit مستنيه
+        AuthRepositoryImpl(
+          AuthRemoteDataSource(),
+          AuthLocalDataSource(),
+        ),
+      ),
       child: Scaffold(
         backgroundColor: AppColors.backgroundColor,
         // استخدمنا BlocListener لمراقبة الحالات (States)
@@ -37,18 +37,20 @@ class LoginScreen extends StatelessWidget {
               // ممكن تظهري Loading Overlay هنا لو حابة
             }
             if (state is LoginSuccess) {
-             if (state.role == 'admin') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const AdminPanelScreen()),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const CreatePlanScreen()),
-        );
-      }
-    }
+              if (state.role == 'admin') {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const AdminPanelScreen()),
+                );
+              } else {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const HomeScreen()),
+                );
+              }
+            }
             if (state is LoginFailure) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

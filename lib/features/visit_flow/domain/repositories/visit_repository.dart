@@ -1,5 +1,5 @@
 import 'package:medical_rep/core/error/result.dart';
-import 'package:medical_rep/features/visit_flow/models/visit_feedback_model.dart';
+import '../../data/models/visit_data_models.dart';
 
 /// Visit flow persistence / remote contract (implemented in the data layer).
 abstract class VisitRepository {
