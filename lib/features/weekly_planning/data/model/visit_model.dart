@@ -32,9 +32,12 @@ class VisitModel extends HiveObject {
   String? clinicName;
 
   @HiveField(10)
-  String? location;
+  double? lat;
 
   @HiveField(11)
+  double? long;
+
+  @HiveField(12)
   String? targetProduct;
   VisitModel({
     this.brick,
@@ -47,7 +50,8 @@ class VisitModel extends HiveObject {
     this.status = "pending",
     this.specialty,
     this.clinicName,
-    this.location,
+    this.lat,
+    this.long,
     this.targetProduct,
   });
 
@@ -64,22 +68,24 @@ Map<String, dynamic> toJson() => {
       "status": status,
   "specialty": specialty,
   "clinic_name": clinicName,
-  "location": location,
+  "lat": lat,
+  "long": long,
   "target_product": targetProduct,
     };
-      factory VisitModel.fromJson(Map<String, dynamic> json) {
+  factory VisitModel.fromJson(Map<String, dynamic> json) {
     return VisitModel(
-  
-      doctor: json['doctor_name'], // اتأكدي إن الاسم هنا زي اللي في سوبابيز
+      doctor: json['doctor_name'],
       date: json['visit_date'],
       dayName: json['day_name'],
       brick: json['brick'],
       status: json['status'] ?? 'pending',
-      shift: json['shift'],
+      shift: json['shift'] ?? 'AM',
+      type: json['visit_type'] ?? 'Single',
+      notes: json['notes'] ?? '',
       specialty: json['specialty'],
       clinicName: json['clinic_name'],
-      location: json['location'],
+      lat: json['lat']?.toDouble(),
+      long: json['long']?.toDouble(),
       targetProduct: json['target_product'],
     );
-  }
-}
+  }}

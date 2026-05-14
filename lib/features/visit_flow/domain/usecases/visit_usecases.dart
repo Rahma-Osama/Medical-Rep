@@ -7,7 +7,6 @@ class VerifyVisitLocationUseCase {
   final VisitRepository _repository;
   const VerifyVisitLocationUseCase(this._repository);
 
-  // حذفنا AppFailure لأن الـ Result بياخد نوع واحد فقط
   Future<Result<bool>> call(String location) =>
       _repository.verifyVisitLocation(location);
 }

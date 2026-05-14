@@ -19,7 +19,7 @@ class VisitRepositoryImpl implements VisitRepository {
   Future<Result<bool>> verifyVisitLocation(String location) async {
     try {
       final isVerified = await _remote.verifyLocation(location);
-      return Success(isVerified); // استخدمنا Success مباشرة لضمان التوافق
+      return Success(isVerified);
     } catch (e) {
       return Failure(
         GeneralFailure(message: e.toString()),

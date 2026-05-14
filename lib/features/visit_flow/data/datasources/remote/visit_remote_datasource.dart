@@ -14,7 +14,6 @@ class VisitRemoteDataSourceImpl implements VisitRemoteDataSource {
   @override
   Future<bool> verifyLocation(String location) async {
     // TODO: call your location-verification endpoint
-    // e.g. await _dio.post('/visits/verify-location', data: {'location': location})
     throw UnimplementedError();
   }
 
