@@ -38,14 +38,26 @@ class VisitModel extends HiveObject {
   });
 
   // التحويل لـ JSON متوافق 100% مع أسماء أعمدة الداتا بيز
-  Map<String, dynamic> toJson() => {
-        "visit_date": date,       // مطابق لـ visit_date
-        "day_name": dayName,      // مطابق لـ day_name
-        "brick": brick,           // مطابق لـ brick
-        "doctor_name": doctor,    // مطابق لـ doctor_name
-        "shift": shift,           // مطابق لـ shift
-        "visit_type": type,       // مطابق لـ visit_type
-        "notes": notes,           // مطابق لـ notes
-        "status": "pending",      // مطابق لـ status
-      };
+// التعديل الأفضل في toJson
+Map<String, dynamic> toJson() => {
+      "visit_date": date,
+      "day_name": dayName,
+      "brick": brick,
+      "doctor_name": doctor,
+      "shift": shift,
+      "visit_type": type,
+      "notes": notes,
+      "status": status, // استخدمي المتغير status بدل الكلمة الثابتة
+    };
+      factory VisitModel.fromJson(Map<String, dynamic> json) {
+    return VisitModel(
+  
+      doctor: json['doctor_name'], // اتأكدي إن الاسم هنا زي اللي في سوبابيز
+      date: json['visit_date'],
+      dayName: json['day_name'],
+      brick: json['brick'],
+      status: json['status'] ?? 'pending',
+      shift: json['shift'],
+    );
+  }
 }

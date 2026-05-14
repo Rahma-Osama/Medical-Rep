@@ -15,7 +15,7 @@ class WeeklyPlanLocalDataSourceImpl implements WeeklyPlanLocalDataSource {
     final box = Hive.box(boxName);
 
     await box.put(dayIndex, visits);
-    print("✅ Saved ${visits.length} visits to Hive for day: $dayIndex");
+    print(" Saved ${visits.length} visits to Hive for day: $dayIndex");
   }
 
   @override

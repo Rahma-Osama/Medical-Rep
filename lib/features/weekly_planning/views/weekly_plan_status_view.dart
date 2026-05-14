@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:medical_rep/core/services/services.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/widgets/custom_app_bar.dart';
+import 'package:medical_rep/features/weekly_planning/data/data%20source/weekly_plan_remote_data_source.dart';
+import 'package:medical_rep/features/weekly_planning/data/model/visit_model.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/cutom_plan_status_card.dart';
 import 'package:medical_rep/features/weekly_planning/cubit/weekly_plan_cubit.dart';
-import 'package:medical_rep/features/weekly_planning/cubit/weekly_plan_state.dart';
 
 class WeeklyPlanningView extends StatelessWidget {
   const WeeklyPlanningView({super.key});
@@ -13,7 +15,12 @@ class WeeklyPlanningView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => getIt<WeeklyPlanCubit>(),
+      create: (_) {
+        final cubit = getIt<WeeklyPlanCubit>();
+        // 🔹 فحص ومسح الخطة لو عدى عليها 5 أيام أول ما الشاشة تفتح
+        cubit.clearCacheIfExpired(); 
+        return cubit;
+      },
       child: const _WeeklyPlanningBody(),
     );
   }
@@ -24,72 +31,88 @@ class _WeeklyPlanningBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> weekDays = ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday"];
-
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
-      body: BlocBuilder<WeeklyPlanCubit, WeeklyPlanState>(
-        builder: (context, state) {
-          return CustomScrollView(
-            slivers: [
-              const CustomAppBar(label: 'Weekly Plan Status'),
+      body: Stack(
+        children: [
+          // 1️⃣ الـ Stream شغال صامت في الخلفية: لو في نت بيحدث الـ Cache أوتوماتيك
+          StreamBuilder<List<VisitModel>>(
+            stream: WeeklyPlanRemoteDataSourceImpl().getVisitsWithCache(), // 🔹 استخدمي الدالة اللي بتكاش
+            builder: (context, snapshot) {
+              return const SizedBox.shrink(); // مخفي تماماً مش بيعطل الـ UI
+            },
+          ),
 
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-    
-                      const SizedBox(height: 15),
+          // 2️⃣ الـ UI الأساسي بيقرأ من الكاش فوراً (شغال Online / Offline بلمح البصر)
+          ValueListenableBuilder(
+            valueListenable: Hive.box<VisitModel>('weekly_visits_box').listenable(),
+            builder: (context, Box<VisitModel> box, _) {
+              final List<VisitModel> allVisits = box.values.toList();
 
-                      // 🔹 عرض البيانات ديناميكياً من الكيوبيت
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: weekDays.length,
-                        itemBuilder: (context, dayIndex) {
-                          // جلب قائمة الزيارات لليوم الحالي
-                          final visits = state.weeklyData[dayIndex] ?? [];
+              return CustomScrollView(
+                slivers: [
+                  const CustomAppBar(label: 'Weekly Plan Status'),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 15),
+                          
+                          if (allVisits.isEmpty)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.only(top: 60),
+                                child: Text(
+                                  "لا توجد خطة حالية أو انتهت صلاحية الخمس أيام.\nبرجاء إدخال خطة جديدة.",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.grey, fontSize: 16, height: 1.5),
+                                ),
+                              ),
+                            )
+                          else
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: allVisits.length,
+                              itemBuilder: (context, index) {
+                                final visit = allVisits[index];
+                                String currentStatus = visit.status ?? 'pending';
+                                
+                                Color statusColor = currentStatus.toLowerCase() == 'approved' 
+                                    ? Colors.green : currentStatus.toLowerCase() == 'rejected' 
+                                    ? Colors.red : Colors.orange;
 
-                          if (visits.isEmpty) {
-                            return const SizedBox.shrink(); // لو اليوم فاضي ميعرضش حاجة
-                          }
-
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: visits.map((visit) {
-                              return // جوه الـ map في صفحة WeeklyPlanningView
- Padding(
-  padding: const EdgeInsets.only(bottom: 12),
-  child: CutomPlanStatusCard(
-    day: weekDays[dayIndex],
-    date: visit.date ?? "No Date",
-    doctorName: visit.doctor ?? "Unknown Doctor",
-    specialty: visit.brick ?? "No Specialty",
-    shift: visit.shift,
-    clinicName: "Clinic",
-    location: visit.brick ?? "No Location",
-    // 🔹 التعديل هنا ليكون Pending
-    status: 'Pending', 
-    color: Colors.orange, // لون الانتظار
-    icon: Icons.access_time_filled_rounded, // أيقونة الساعة
-    onStartVisit: () {},
-  ),
-);
-                            }).toList(),
-                          );
-                        },
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: CutomPlanStatusCard(
+                                    day: visit.dayName ?? "No Day", 
+                                    date: visit.date ?? "No Date",
+                                    doctorName: visit.doctor ?? "Unknown Doctor",
+                                    specialty: visit.brick ?? "No Specialty",
+                                    shift: visit.shift,
+                                    clinicName: "Clinic",
+                                    location: visit.brick ?? "No Location",
+                                    status: currentStatus, 
+                                    color: statusColor, 
+                                    icon: currentStatus.toLowerCase() == 'approved' 
+                                        ? Icons.check_circle_rounded : Icons.access_time_filled_rounded, 
+                                    onStartVisit: () {},
+                                  ),
+                                );
+                              },
+                            ),
+                          const SizedBox(height: 100),
+                        ],
                       ),
-
-                      const SizedBox(height: 100),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ],
-          );
-        },
+                ],
+              );
+            },
+          ),
+        ],
       ),
     );
   }

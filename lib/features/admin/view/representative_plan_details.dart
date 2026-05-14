@@ -6,13 +6,11 @@ import 'package:medical_rep/features/admin/data/data%20source/admin_data_source.
 
 class RepresentativePlanDetails extends StatefulWidget {
   final String userId;
-  final List<Map<String, dynamic>> visits;
-  final VoidCallback onRefresh;
+final VoidCallback onRefresh;
 
   const RepresentativePlanDetails({
     super.key,
     required this.userId,
-    required this.visits,
     required this.onRefresh,
   });
 
@@ -21,216 +19,212 @@ class RepresentativePlanDetails extends StatefulWidget {
 }
 
 class _RepresentativePlanDetailsState extends State<RepresentativePlanDetails> {
-  // دالة مساعدة لتحديد لون الحالة
+  final TextEditingController _adminNotesController = TextEditingController();
+  List<Map<String, dynamic>>? _currentVisits;
+
   Color _getStatusColor(String? status) {
     switch (status?.toLowerCase()) {
-      case 'approved':
-        return Colors.green;
-      case 'rejected':
-        return Colors.red;
-      default:
-        return Colors.orange; // للحالة pending أو null
+      case 'approved': return Colors.green;
+      case 'rejected': return Colors.red;
+      default: return Colors.orange;
     }
   }
 
+ Future<void> _processPlan(String status) async {
+  if (_currentVisits == null) return;
+
+  // إظهار اللودينج
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const Center(child: CircularProgressIndicator()),
+  );
+
+  try {
+    final notes = _adminNotesController.text.trim();
+    
+    // تنفيذ التحديث في سوبابيز
+  for (var visit in _currentVisits!) {
+  final String vid = visit['id'].toString();
+  print("Updating Visit ID: $vid"); // عشان نشوف الـ ID في الـ Debug Console
+  await AdminRemoteDataSource().updatePlanStatusWithNotes(
+    visitId: vid,
+    newStatus: status,
+    adminNotes: notes,
+  );
+}
+
+    // لو وصلنا هنا يبقى الداتا اتحدثت فعلاً في سوبابيز
+    if (mounted) {
+      setState(() {
+        for (var v in _currentVisits!) {
+          v['status'] = status; // بنحدث الحالة محلياً عشان الأزرار تختفي
+        }
+      });
+      
+      Navigator.pop(context); // إغلاق اللودينج
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Plan $status Successfully!")),
+      );
+      
+      widget.onRefresh(); // تحديث الهوم
+    }
+  } catch (e) {
+    if (mounted) {
+      Navigator.pop(context); // إغلاق اللودينج في حالة الخطأ
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+      );
+    }
+  }
+}
+
   @override
   Widget build(BuildContext context) {
-    // التحقق هل يوجد أي زيارة لسه pending عشان نظهر الأزرار أو نخفيها
-    bool hasPendingVisits = widget.visits.any((v) => v['status'] == 'pending' || v['status'] == null);
-
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
-      body: Column(
-        children: [
-          Expanded(
-            child: CustomScrollView(
-              slivers: [
-                const CustomAppBar(label: 'Plan Details'),
-                SliverPadding(
-                  padding: const EdgeInsets.all(16),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final visit = widget.visits[index];
-                        final String currentStatus = visit['status'] ?? 'pending';
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        // نطلب البيانات من السيرفر مباشرة بالـ ID
+        future: AdminRemoteDataSource().getRepresentativePlan(widget.userId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting && _currentVisits == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          if (snapshot.hasData) {
+            _currentVisits = snapshot.data;
+          }
 
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: AppColors.grayColor.withOpacity(0.2)),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      visit['day_name'] ?? "Day",
-                                      style: AppTextStyle.title.copyWith(
-                                        color: AppColors.primaryColor,
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                                    // عرض حالة الزيارة كـ Badge
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: _getStatusColor(currentStatus).withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(color: _getStatusColor(currentStatus)),
-                                      ),
-                                      child: Text(
-                                        currentStatus.toUpperCase(),
-                                        style: TextStyle(
-                                          color: _getStatusColor(currentStatus),
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Text(
-                                  visit['visit_date'] ?? "",
-                                  style: AppTextStyle.body.copyWith(color: AppColors.grayColor, fontSize: 12),
-                                ),
-                                const Divider(height: 24, thickness: 0.5),
-                                _buildInfoRow(Icons.local_hospital, "Doctor", visit['doctor_name']),
-                                _buildInfoRow(Icons.access_time, "Shift", visit['shift']),
-                                _buildInfoRow(Icons.category, "Type", visit['visit_type']),
-                                if (visit['notes'] != null && visit['notes'].toString().isNotEmpty)
-                                  _buildInfoRow(Icons.note, "Notes", visit['notes']),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                      childCount: widget.visits.length,
+          if (_currentVisits == null || _currentVisits!.isEmpty) {
+            return const Center(child: Text("No details found."));
+          }
+
+          // فحص دقيق للحالة (إهمال الحروف الكبيرة والصغيرة)
+        bool isProcessed = _currentVisits!.every((v) {
+    final s = v['status']?.toString().toLowerCase() ?? 'pending';
+    return s == 'approved' || s == 'rejected';
+  });
+
+          return Column(
+            children: [
+              Expanded(
+                child: CustomScrollView(
+                  slivers: [
+                    const CustomAppBar(label: 'Review Plan'),
+                    SliverPadding(
+                      padding: const EdgeInsets.all(16),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => _buildVisitCard(_currentVisits![index]),
+                          childCount: _currentVisits!.length,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-
-          // منطقة الأزرار: تظهر فقط إذا كانت هناك زيارات معلقة
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(24),
-                topRight: Radius.circular(24),
               ),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))
-              ],
-            ),
-            child: SafeArea(
-              child: hasPendingVisits 
-                ? Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          icon: const Icon(Icons.check_circle_outline),
-                          label: const Text("Approve All", style: TextStyle(fontWeight: FontWeight.bold)),
-                          onPressed: () => _updateAllStatus(context, 'approved'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          icon: const Icon(Icons.highlight_off),
-                          label: const Text("Reject All", style: TextStyle(fontWeight: FontWeight.bold)),
-                          onPressed: () => _updateAllStatus(context, 'rejected'),
-                        ),
-                      ),
-                    ],
-                  )
-                : Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.done_all, color: Colors.green),
-                        const SizedBox(width: 10),
-                        Text(
-                          "This plan has been processed",
-                          style: AppTextStyle.body.copyWith(color: Colors.green, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-            ),
-          ),
-        ],
+              _buildAdminActionArea(isProcessed),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Future<void> _updateAllStatus(BuildContext context, String status) async {
-    try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) =>  Center(child: CircularProgressIndicator(color: AppColors.primaryColor)),
-      );
-
-      // تحديث كل زيارة في سوبا بيز
-      for (var visit in widget.visits) {
-        await AdminRemoteDataSource().updatePlanStatus(visit['id'].toString(), status);
-      }
-
-      if (context.mounted) {
-        Navigator.pop(context); // إغلاق الـ Loading
-        widget.onRefresh();    // تحديث البيانات في الشاشة الرئيسية للإدمن
-        Navigator.pop(context); // العودة للشاشة السابقة
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Plan $status successfully"), backgroundColor: status == 'approved' ? Colors.green : Colors.red),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) Navigator.pop(context);
-      debugPrint("Error updating plan: $e");
-    }
+  Widget _buildVisitCard(Map<String, dynamic> visit) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(visit['day_name'] ?? "Day", style: AppTextStyle.title.copyWith(fontSize: 16)),
+                _buildStatusBadge(visit['status'] ?? 'pending'),
+              ],
+            ),
+            const Divider(),
+            Text("Doctor: ${visit['doctor_name']}", style: AppTextStyle.body),
+            Text("Date: ${visit['visit_date']}", style: AppTextStyle.body),
+          ],
+        ),
+      ),
+    );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String? value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: AppColors.primaryColor.withOpacity(0.7)),
-          const SizedBox(width: 12),
-          Text("$label: ", style: AppTextStyle.body.copyWith(fontWeight: FontWeight.bold)),
-          Expanded(
-            child: Text(
-              value ?? "N/A",
-              style: AppTextStyle.body.copyWith(color: AppColors.grayColor),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
+  Widget _buildAdminActionArea(bool isProcessed) {
+    final currentStatus = _currentVisits?.first['status'] ?? 'Processed';
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
       ),
+      child: SafeArea(
+        child: isProcessed 
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle, color: Colors.green, size: 50),
+                const SizedBox(height: 10),
+                Text(
+                  "This plan has been $currentStatus",
+                  style: AppTextStyle.title.copyWith(color: Colors.green, fontSize: 18),
+                ),
+                const SizedBox(height: 5),
+                const Text("You have already taken action on this plan."),
+              ],
+            )
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _adminNotesController,
+                  decoration: const InputDecoration(
+                    hintText: "Add feedback...",
+                    border: OutlineInputBorder(),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => _processPlan('approved'),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(vertical: 15)),
+                        child: const Text("Approve", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => _processPlan('rejected'),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(vertical: 15)),
+                        child: const Text("Reject", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String status) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(color: _getStatusColor(status).withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+      child: Text(status.toUpperCase(), style: TextStyle(color: _getStatusColor(status), fontSize: 11, fontWeight: FontWeight.bold)),
     );
   }
 }

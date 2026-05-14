@@ -25,7 +25,7 @@ class ProfileSummaryCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: AppColors.blackColor.withValues(alpha: 0.08),
+              color: AppColors.blackColor.withOpacity(   0.08),
               blurRadius: 24,
               offset: const Offset(0, 12),
             ),
@@ -43,8 +43,8 @@ class ProfileSummaryCard extends StatelessWidget {
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
                       colors: [
-                        AppColors.primaryColor.withValues(alpha: 0.15),
-                        AppColors.thirdColor.withValues(alpha: 0.2),
+                        AppColors.primaryColor.withOpacity(0.15),
+                        AppColors.thirdColor.withOpacity( 0.2),
                       ],
                     ),
                   ),
@@ -90,7 +90,7 @@ class ProfileSummaryCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.primaryColor.withValues(alpha: 0.06),
+                color: AppColors.primaryColor.withOpacity(   0.06),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(

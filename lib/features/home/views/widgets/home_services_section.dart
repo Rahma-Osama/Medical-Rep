@@ -118,7 +118,7 @@ class _ServiceTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: AppColors.blackColor.withValues(alpha: 0.04),
+                color: AppColors.blackColor.withOpacity( 0.04),
                 blurRadius: 14,
                 offset: const Offset(0, 6),
               ),
@@ -130,7 +130,7 @@ class _ServiceTile extends StatelessWidget {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryColor.withValues(alpha: 0.08),
+                  color: AppColors.primaryColor.withOpacity(  0.08),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: AppColors.primaryColor, size: 26),

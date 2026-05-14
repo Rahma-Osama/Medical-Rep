@@ -121,7 +121,7 @@ class _VisitCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: AppColors.blackColor.withValues(alpha: 0.05),
+                color: AppColors.blackColor.withOpacity(   0.05),
                 blurRadius: 14,
                 offset: const Offset(0, 6),
               ),
@@ -133,7 +133,7 @@ class _VisitCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryColor.withValues(alpha: 0.08),
+                  color: AppColors.primaryColor.withOpacity(  0.08),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(item.leadingIcon, color: AppColors.primaryColor, size: 24),

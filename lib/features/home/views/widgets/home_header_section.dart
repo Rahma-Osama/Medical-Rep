@@ -48,7 +48,7 @@ class HomeHeaderSection extends StatelessWidget {
             top: -30,
             child: CircleAvatar(
               radius: 90,
-              backgroundColor: AppColors.whiteColor.withValues(alpha: 0.08),
+              backgroundColor: AppColors.whiteColor.withOpacity( 0.08),
             ),
           ),
           Positioned(
@@ -56,7 +56,7 @@ class HomeHeaderSection extends StatelessWidget {
             bottom: 20,
             child: CircleAvatar(
               radius: 70,
-              backgroundColor: AppColors.whiteColor.withValues(alpha: 0.06),
+              backgroundColor: AppColors.whiteColor.withOpacity(  0.06),
             ),
           ),
           Row(
@@ -69,7 +69,7 @@ class HomeHeaderSection extends StatelessWidget {
                     Text(
                       greeting,
                       style: AppTextStyle.hint.copyWith(
-                        color: AppColors.whiteColor.withValues(alpha: 0.85),
+                        color: AppColors.whiteColor.withOpacity( 0.85),
                         fontSize: 13,
                       ),
                     ),
@@ -86,7 +86,7 @@ class HomeHeaderSection extends StatelessWidget {
                     Text(
                       roleLine,
                       style: AppTextStyle.body.copyWith(
-                        color: AppColors.whiteColor.withValues(alpha: 0.9),
+                        color: AppColors.whiteColor.withOpacity(0.09),
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -120,7 +120,7 @@ class HomeHeaderSection extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Material(
-          color: AppColors.whiteColor.withValues(alpha: 0.2),
+          color: AppColors.whiteColor.withOpacity(  0.2),
           shape: const CircleBorder(),
           child: InkWell(
             onTap: onPressed,
