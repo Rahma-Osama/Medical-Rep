@@ -42,6 +42,7 @@ dependencies:
   postgrest: ^2.7.0
   get_it: ^9.2.1
   equatable: ^2.0.8
+  geolocator: ^13.0.1
 
 dev_dependencies:
   flutter_test:

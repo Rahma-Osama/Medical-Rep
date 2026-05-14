@@ -25,7 +25,17 @@ class VisitModel extends HiveObject {
   String? dayName;
   @HiveField(7)
   String status;
+  @HiveField(8)
+  String? specialty;
 
+  @HiveField(9)
+  String? clinicName;
+
+  @HiveField(10)
+  String? location;
+
+  @HiveField(11)
+  String? targetProduct;
   VisitModel({
     this.brick,
     this.doctor,
@@ -35,6 +45,10 @@ class VisitModel extends HiveObject {
     this.date,
     this.dayName,
     this.status = "pending",
+    this.specialty,
+    this.clinicName,
+    this.location,
+    this.targetProduct,
   });
 
   // التحويل لـ JSON متوافق 100% مع أسماء أعمدة الداتا بيز
@@ -47,7 +61,11 @@ Map<String, dynamic> toJson() => {
       "shift": shift,
       "visit_type": type,
       "notes": notes,
-      "status": status, // استخدمي المتغير status بدل الكلمة الثابتة
+      "status": status,
+  "specialty": specialty,
+  "clinic_name": clinicName,
+  "location": location,
+  "target_product": targetProduct,
     };
       factory VisitModel.fromJson(Map<String, dynamic> json) {
     return VisitModel(
@@ -58,6 +76,10 @@ Map<String, dynamic> toJson() => {
       brick: json['brick'],
       status: json['status'] ?? 'pending',
       shift: json['shift'],
+      specialty: json['specialty'],
+      clinicName: json['clinic_name'],
+      location: json['location'],
+      targetProduct: json['target_product'],
     );
   }
 }
