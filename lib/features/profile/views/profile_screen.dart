@@ -15,91 +15,10 @@ import 'package:medical_rep/features/profile/views/widgets/profile_menu_section.
 import 'package:medical_rep/features/profile/views/widgets/profile_summary_card.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Remove this
+import 'package:flutter/material.dart';
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({
-    super.key,
-    this.showBackButton = true,
-    this.onSignOut,
-    this.getProfileUseCase,
-  });
-
-  /// Optional injection for tests / future DI container.
-  final GetProfileUseCase? getProfileUseCase;
-
-  final bool showBackButton;
-  final VoidCallback? onSignOut;
-
-  @override
-  Widget build(BuildContext context) {
-    final useCase = getProfileUseCase ?? GetProfileUseCase(ProfileRepositoryImpl());
-    return BlocProvider(
-      create: (_) => ProfileCubit(useCase)..load(),
-      child: _ProfileView(
-        showBackButton: showBackButton,
-        onSignOut: onSignOut,
-      ),
-    );
-  }
-}
-
-class _ProfileView extends StatelessWidget {
-  const _ProfileView({
-    required this.showBackButton,
-    this.onSignOut,
-  });
-
-  final bool showBackButton;
-  final VoidCallback? onSignOut;
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<ProfileCubit, ProfileState>(
-      builder: (context, state) {
-        return switch (state) {
-          ProfileLoading() => Scaffold(
-              backgroundColor: AppColors.backgroundColor,
-              body: const Center(child: CircularProgressIndicator()),
-            ),
-          ProfileError(:final message) => Scaffold(
-              backgroundColor: AppColors.backgroundColor,
-              body: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(message, textAlign: TextAlign.center),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: () => context.read<ProfileCubit>().load(),
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ProfileLoaded(:final user) => _ProfileScrollBody(
-              user: user,
-              showBackButton: showBackButton,
-              onSignOut: onSignOut,
-            ),
-        };
-      },
-    );
-  }
-}
-
-class _ProfileScrollBody extends StatelessWidget {
-  const _ProfileScrollBody({
-    required this.user,
-    required this.showBackButton,
-    this.onSignOut,
-  });
-
-  final ProfileUser user;
-  final bool showBackButton;
-  final VoidCallback? onSignOut;
+  const ProfileScreen({Key? key,showBackButton}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
