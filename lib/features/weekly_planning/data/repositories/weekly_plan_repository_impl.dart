@@ -54,59 +54,60 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
 
 // في ملف WeeklyPlanRepositoryImpl
   @override
-  Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
-    try {
-      final String? userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) throw Exception("User not logged in!");
+  @override
+// استبدلي دالة saveWeeklyPlan في الـ Repository بهذا الكود:
+@override
+Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
+  try {
+    final String? userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) throw Exception("User not logged in!");
 
-      final List<Map<String, dynamic>> allVisitsToUpload = [];
+    final List<Map<String, dynamic>> allVisitsToUpload = [];
 
-      // --- الجزء الجديد: الحفظ في الكاش (Hive) ---
-      weeklyData.forEach((dayIndex, visits) async {
-        // تحويل الـ Entities لـ Models عشان Hive بيفهم الموديل
-        final List<VisitModel> modelsList = visits
-            .map((entity) => VisitModel(
-                  brick: entity.brick,
-                  doctor: entity.doctor,
-                  shift: entity.shift,
-                  type: entity.type,
-                  notes: entity.notes,
-                  date: entity.date,
-                  dayName: entity.dayName,
-                ))
-            .toList();
+    for (var entry in weeklyData.entries) {
+      final List<VisitModel> modelsList = entry.value.map((entity) => VisitModel(
+        brick: entity.brick,
+        doctor: entity.doctor,
+        shift: entity.shift,
+        type: entity.type,
+        date: entity.date,
+        dayName: entity.dayName,
+        status: 'pending',
+      )).toList();
+      
+      // 1. حفظ محلي في Hive
+      await localDS.saveDayVisitsLocally(entry.key, modelsList);
 
-        // حفظ كل يوم في الـ Hive Box الخاص به
-        await localDS.saveDayVisitsLocally(dayIndex, modelsList);
-      });
-      // ----------------------------------------
-
-      // تكملة كود الرفع للسيرفر (زي ما هو عندك)
-      weeklyData.forEach((dayIndex, visits) {
-        for (var visit in visits) {
-          allVisitsToUpload.add({
-            'user_id': userId,
-            'brick': visit.brick,
-            'doctor_name': visit.doctor,
-            'shift': visit.shift,
-            'visit_type': visit.type,
-            'visit_date': visit.date,
-            'day_name': visit.dayName,
-            'status': 'pending',
-          });
-        }
-      });
-
-      if (allVisitsToUpload.isNotEmpty) {
-        await Supabase.instance.client.from('visits').insert(allVisitsToUpload);
+      // 2. تجهيز البيانات للرفع
+      for (var model in modelsList) {
+        allVisitsToUpload.add({
+          'user_id': userId,
+          'brick': model.brick,
+          'doctor_name': model.doctor,
+          'shift': model.shift,
+          'visit_type': model.type,
+          'visit_date': model.date,
+          'day_name': model.dayName,
+          'status': 'pending',
+        });
       }
-
-      print("✅ Plan Saved Locally to Hive and Uploaded to Supabase!");
-    } catch (e) {
-      print("Repository Error: $e");
-      rethrow;
     }
+
+    // 3. 🔹 الحل السحري: استخدام upsert ومنع التكرار
+    if (allVisitsToUpload.isNotEmpty) {
+      await Supabase.instance.client
+          .from('visits')
+          .upsert(
+            allVisitsToUpload, 
+            onConflict: 'user_id, visit_date, doctor_name' // يمنع تكرار نفس الدكتور لنفس اليوزر في نفس اليوم
+          );
+      print("✅ Plan synced with Supabase (Upserted)");
+    }
+  } catch (e) {
+    print("❌ Repository Error: $e");
+    rethrow;
   }
+}
 
   @override
   Map<int, List<VisitEntity>> getLocalPlan() {
