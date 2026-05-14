@@ -1,4 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive/hive.dart';
+import 'package:medical_rep/features/visit_flow/data/models/visit_data_models.dart';
 import '../domain/entities/visit_entity.dart';
 import '../domain/usecases/save_visit_usecase.dart';
 import '../domain/usecases/submit_plan_usecase.dart';
@@ -35,52 +37,74 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
   VisitEntity _tempVisit = VisitEntity(shift: "AM", type: "Single");
 
   // جلب المناطق (Bricks) فور تشغيل الكيوبيت
-// في ملف weekly_plan_cubit.dart
-// داخل WeeklyPlanCubit
-void _initData() async {
-  try {
-    // 1. جلب المناطق (كودك القديم)
-    final fetchedBricks = await saveVisitUseCase.repository.getAreasFromSupabase();
-    allBricks = List<String>.from(fetchedBricks); 
+  void _initData() async {
+    try {
+      // 1. جلب المناطق
+      final fetchedBricks = await saveVisitUseCase.repository.getAreasFromSupabase();
+      allBricks = List<String>.from(fetchedBricks); 
 
-    // 2. الجزء الجديد: جلب الخطة المحفوظة في الكاش (Hive)
-    final cachedPlan = saveVisitUseCase.repository.getLocalPlan();
-    if (cachedPlan.isNotEmpty) {
-      // لو لقينا بيانات في الكاش، بنحطها في الـ _weeklyData عشان تظهر في الـ UI
-      _weeklyData.clear();
-      _weeklyData.addAll(cachedPlan);
-      print("✅ Cached Plan Loaded: ${_weeklyData.length} days found.");
+      // 2. جلب الخطة المحفوظة في الكاش (Hive)
+      final cachedPlan = saveVisitUseCase.repository.getLocalPlan();
+      if (cachedPlan.isNotEmpty) {
+        _weeklyData.clear();
+        _weeklyData.addAll(cachedPlan);
+        print("✅ Cached Plan Loaded: ${_weeklyData.length} days found.");
+      }
+
+      _emitUpdatedState();
+    } catch (e) {
+      print("Cubit Init Error: $e");
+      _emitUpdatedState(error: "حدث خطأ في جلب البيانات");
     }
-
-    _emitUpdatedState();
-  } catch (e) {
-    print("Cubit Init Error: $e");
-    _emitUpdatedState(error: "حدث خطأ في جلب البيانات");
   }
-}
-void tempUpdateField(String field, dynamic value) async {
-  _tempVisit = _tempVisit.copyWith(
-    // لما بنختار بريك من الـ UI، بنسجله في حقل brick جوه الـ Entity
-    brick: field == "brick" ? value : _tempVisit.brick, 
-    doctor: field == "doctor" ? value : (field == "brick" ? null : _tempVisit.doctor),
-    shift: field == "shift" ? value : _tempVisit.shift,
-    type: field == "type" ? value : _tempVisit.type,
-    notes: field == "notes" ? value : _tempVisit.notes,
-    date: _getDateForDay(selectedDayIndex),
-    dayName: weekDays[selectedDayIndex],
-    // باقي الحقول...
-  );
 
-  // لو الحقل اللي اتغير هو الـ "brick" (اللي جاي من area_name)
-  if (field == "brick" && value != null) {
-    filteredDoctors = []; 
-    _emitUpdatedState();
-    // بنروح نجيب الدكاترة اللي الـ area_name بتاعهم بيساوي القيمة اللي اخترناها
-    filteredDoctors = await saveVisitUseCase.repository.getDoctorsByArea(value);
+  // 🔹 مكان الدوال الصحيح لمراقبة الـ 5 أيام والـ Cache (جوه الكلاس)
+  void clearCacheIfExpired() {
+    if (_isCacheExpired()) {
+      var box = Hive.box<VisitModel>('weekly_visits_box');
+      box.clear();
+      
+      // ✅ الـ emit شغالة هنا تمام لأنها جوه الكلاس
+      emit(WeeklyPlanInitial()); 
+      print("🚨 Cache expired and cleared.");
+    }
   }
-  
-  _emitUpdatedState();
-}
+
+  bool _isCacheExpired() {
+    // التأكد أولاً إن البوكس مفتوح للأمان
+    if (!Hive.isBoxOpen('settings')) return false;
+    
+    var settingsBox = Hive.box('settings');
+    int? lastSync = settingsBox.get('last_sync_date');
+    
+    if (lastSync == null) return false;
+
+    DateTime lastDate = DateTime.fromMillisecondsSinceEpoch(lastSync);
+    int differenceInDays = DateTime.now().difference(lastDate).inDays;
+
+    return differenceInDays >= 5; 
+  }
+
+  void tempUpdateField(String field, dynamic value) async {
+    _tempVisit = _tempVisit.copyWith(
+      brick: field == "brick" ? value : _tempVisit.brick, 
+      doctor: field == "doctor" ? value : (field == "brick" ? null : _tempVisit.doctor),
+      shift: field == "shift" ? value : _tempVisit.shift,
+      type: field == "type" ? value : _tempVisit.type,
+      notes: field == "notes" ? value : _tempVisit.notes,
+      date: _getDateForDay(selectedDayIndex),
+      dayName: weekDays[selectedDayIndex],
+    );
+
+    if (field == "brick" && value != null) {
+      filteredDoctors = []; 
+      _emitUpdatedState();
+      filteredDoctors = await saveVisitUseCase.repository.getDoctorsByArea(value);
+    }
+    
+    _emitUpdatedState();
+  }
+
   String _getDateForDay(int index) {
     DateTime now = DateTime.now();
     DateTime targetDate = now.add(Duration(days: index)); 
@@ -93,9 +117,6 @@ void tempUpdateField(String field, dynamic value) async {
     _emitUpdatedState();
   }
 
-  /// تحديث الحقول وجلب الدكاترة ديناميكياً عند اختيار المنطقة
-  
-  /// إضافة الزيارة مع التحقق من عدم تكرار الدكتور في نفس اليوم
   Future<void> addVisitToDay() async {
     if (_tempVisit.doctor == null || _tempVisit.brick == null || _tempVisit.doctor!.isEmpty) {
       _emitUpdatedState(error: "Please select Brick and Doctor first");
@@ -106,14 +127,11 @@ void tempUpdateField(String field, dynamic value) async {
     bool isDuplicate = currentDayVisits.any((v) => v.doctor == _tempVisit.doctor);
 
     if (isDuplicate) {
-      // نرسل رسالة الخطأ مع الحفاظ على استقرار الواجهة
       _emitUpdatedState(error: "هذا الدكتور مضاف بالفعل في جدول اليوم!");
       return;
     }
 
     _weeklyData[selectedDayIndex]!.add(_tempVisit);
-    
-    // تصفير النموذج للزيارة القادمة
     _tempVisit = VisitEntity(shift: "AM", type: "Single", brick: null, doctor: null); 
     _emitUpdatedState();
   }
@@ -124,43 +142,47 @@ void tempUpdateField(String field, dynamic value) async {
       _emitUpdatedState();
     }
   }
- Future<void> submitPlan() async {
-  emit(WeeklyPlanLoading(
-    weeklyData: _weeklyData,
-    selectedDayIndex: selectedDayIndex, // شيلي الـ _ لو مش موجودة في التعريف فوق
-    tempVisit: _tempVisit,
-    completionRate: _calculateCompletion,
-  ));
 
-  try {
-    await saveVisitUseCase.repository.saveWeeklyPlan(_weeklyData); 
-    
+  Future<void> submitPlan() async {
+    emit(WeeklyPlanLoading(
+      weeklyData: _weeklyData,
+      selectedDayIndex: selectedDayIndex,
+      tempVisit: _tempVisit,
+      completionRate: _calculateCompletion,
+    ));
+
     try {
-      await submitPlanUseCase.call(); 
+      await saveVisitUseCase.repository.saveWeeklyPlan(_weeklyData); 
+      
+      try {
+        await submitPlanUseCase.call(); 
+        // 🔹 طالما الخطة اترجمت واترفعت بنجاح، بنحدث وقت الـ Sync لبداية الـ 5 أيام
+        if (Hive.isBoxOpen('settings')) {
+          await Hive.box('settings').put('last_sync_date', DateTime.now().millisecondsSinceEpoch);
+        }
+      } catch (e) {
+        print("Hive/Submit Error: $e");
+      }
+      
+      emit(WeeklyPlanSuccess(
+        weeklyData: _weeklyData,
+        selectedDayIndex: selectedDayIndex,
+        tempVisit: _tempVisit,
+        completionRate: _calculateCompletion,
+      ));
+
     } catch (e) {
-      print("Hive Error: $e");
+      emit(WeeklyPlanError(
+        e.toString(),
+        weeklyData: _weeklyData,
+        selectedDayIndex: selectedDayIndex,
+        tempVisit: _tempVisit,
+        completionRate: _calculateCompletion,
+      ));
     }
-    
-    emit(WeeklyPlanSuccess(
-      weeklyData: _weeklyData,
-      selectedDayIndex: selectedDayIndex,
-      tempVisit: _tempVisit,
-      completionRate: _calculateCompletion,
-    ));
-
-  } catch (e) {
-    emit(WeeklyPlanError(
-      e.toString(),
-      weeklyData: _weeklyData,
-      selectedDayIndex: selectedDayIndex,
-      tempVisit: _tempVisit,
-      completionRate: _calculateCompletion,
-    ));
   }
-}
 
-void refreshPlanStatus() async {
-    // إرسال حالة التحميل مع الحفاظ على البيانات الحالية في الواجهة
+  void refreshPlanStatus() async {
     emit(WeeklyPlanLoading(
       weeklyData: Map.from(_weeklyData),
       selectedDayIndex: selectedDayIndex,
@@ -169,22 +191,18 @@ void refreshPlanStatus() async {
     ));
 
     try {
-      // 1. طلب المزامنة من السيرفر (تحديث Hive من Supabase)
       await saveVisitUseCase.repository.syncPlanStatusWithServer();
-
-      // 2. إعادة قراءة البيانات من Hive بعد ما اتحدثت
       final updatedPlan = saveVisitUseCase.repository.getLocalPlan();
 
-      // 3. تحديث القائمة المحلية في الكيوبيت
       _weeklyData.clear();
       _weeklyData.addAll(updatedPlan);
 
-      // 4. تحديث الواجهة بالحالة الجديدة
       _emitUpdatedState();
     } catch (e) {
       _emitUpdatedState(error: "فشلت عملية تحديث البيانات");
     }
   }
+
   bool get isPlanComplete => _weeklyData.values.every((list) => list.isNotEmpty);
 
   double get _calculateCompletion {
@@ -192,17 +210,18 @@ void refreshPlanStatus() async {
     return daysWithVisits / weekDays.length;
   }
 
- void _emitUpdatedState({String? error}) {
-  emit(WeeklyPlanUpdated(
-    weeklyData: Map.from(_weeklyData), 
-    selectedDayIndex: selectedDayIndex,
-    completionRate: _calculateCompletion,
-    tempVisit: _tempVisit, 
-    error: error,
+  void _emitUpdatedState({String? error}) {
+    emit(WeeklyPlanUpdated(
+      weeklyData: Map.from(_weeklyData), 
+      selectedDayIndex: selectedDayIndex,
+      completionRate: _calculateCompletion,
+      tempVisit: _tempVisit, 
+      error: error,
     ));
   }
-}
+} // 👈 قفل كلاس الـ Cubit الأساسي هنا
 
+// الـ extension بيفضل بره الكلاس عادي جداً
 extension VisitEntityCopy on VisitEntity {
   VisitEntity copyWith({
     String? brick,

@@ -16,4 +16,5 @@ class ProfileCubit extends Cubit<ProfileState> {
       onFailure: (AppFailure f) => emit(ProfileError('${f.title}: ${f.message}')),
     );
   }
+  
 }

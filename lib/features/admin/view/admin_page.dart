@@ -15,44 +15,46 @@ class AdminPanelScreen extends StatefulWidget {
 }
 
 class _AdminPanelScreenState extends State<AdminPanelScreen> {
-  void _refresh() => setState(() {});
+  // دالة لتحديث الشاشة وإعادة بناء الـ FutureBuilder
+  void _refresh() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundColor, // توحيد لون الخلفية
+      backgroundColor: AppColors.backgroundColor,
       body: CustomScrollView(
         slivers: [
-          // استخدام الكاستم بار بتاعك مع إضافة زر الخروج
           CustomAppBar(
             label: 'Manager Dashboard',
             actions: [
-                    IconButton(
-                      icon: const Icon(Icons.logout, color: Colors.white),
-                      onPressed: () async {
-                        // تنفيذ خروج من سوبا بيز
-                        await Supabase.instance.client.auth.signOut();
-                        if (context.mounted) {
-                          // العودة لصفحة تسجيل الدخول ومسح كل الـ stack
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(builder: (context) => const LoginScreen()),
-                            (route) => false,
-                          );
-                        }
-                      },
-                    ),
-                  ],
-            
+              IconButton(
+                icon: const Icon(Icons.logout, color: Colors.white),
+                onPressed: () async {
+                  await Supabase.instance.client.auth.signOut();
+                  if (context.mounted) {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                      (route) => false,
+                    );
+                  }
+                },
+              ),
+            ],
           ),
 
           SliverToBoxAdapter(
             child: FutureBuilder<List<Map<String, dynamic>>>(
+              // الـ FutureBuilder هيجيب البيانات من سوبابيز كل ما نعمل refresh
               future: AdminRemoteDataSource().getAllPlans(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return  Padding(
-                    padding: EdgeInsets.only(top: 50),
+                    padding: EdgeInsets.only(top: 100),
                     child: Center(child: CircularProgressIndicator(color: AppColors.primaryColor)),
                   );
                 }
@@ -77,7 +79,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
                 if (userIds.isEmpty) {
                   return Padding(
-                    padding: const EdgeInsets.only(top: 50),
+                    padding: const EdgeInsets.only(top: 100),
                     child: Center(
                       child: Text(
                         "No plans submitted yet.", 
@@ -108,7 +110,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
                           return Card(
                             margin: const EdgeInsets.only(bottom: 16),
-                            elevation: 0, // خليناه Flat عشان يمشي مع ستايل الـ Cards التانية
+                            elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                               side: BorderSide(color: AppColors.grayColor.withOpacity(0.2)),
@@ -121,7 +123,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                                   color: AppColors.primaryColor.withOpacity(0.1),
                                   shape: BoxShape.circle,
                                 ),
-                                child:  Icon(Icons.person, color: AppColors.primaryColor),
+                                child: Icon(Icons.person, color: AppColors.primaryColor),
                               ),
                               title: Text(
                                 "Rep ID: ${userId.substring(0, 8).toUpperCase()}", 
@@ -131,19 +133,20 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                                 "Total Visits: ${visits.length}", 
                                 style: AppTextStyle.body.copyWith(color: AppColors.grayColor)
                               ),
-                              trailing:  Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.primaryColor),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => RepresentativePlanDetails(
-                                      userId: userId,
-                                      visits: visits,
-                                      onRefresh: _refresh,
-                                    ),
-                                  ),
-                                );
-                              },
+                              trailing: Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.primaryColor),
+                             // داخل ListView.builder في AdminPanelScreen
+onTap: () async {
+  await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => RepresentativePlanDetails(
+        userId: userId, // بنبعت الـ ID بس والشاشة هي اللي هتجيب الداتا
+        onRefresh: _refresh,
+      ),
+    ),
+  );
+  _refresh(); // تحديث الهوم لما نرجع
+},
                             ),
                           );
                         },

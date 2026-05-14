@@ -23,7 +23,7 @@ class HomeBottomNavigationBar extends StatelessWidget {
 
     return Material(
       elevation: 12,
-      shadowColor: AppColors.blackColor.withValues(alpha: 0.08),
+      shadowColor: AppColors.blackColor.withOpacity(0.08),
       color: Colors.transparent,
       child: Container(
         decoration: BoxDecoration(
@@ -31,7 +31,7 @@ class HomeBottomNavigationBar extends StatelessWidget {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
           boxShadow: [
             BoxShadow(
-              color: AppColors.blackColor.withValues(alpha: 0.08),
+              color: AppColors.blackColor.withOpacity(0.08),
               blurRadius: 20,
               offset: const Offset(0, -4),
             ),
