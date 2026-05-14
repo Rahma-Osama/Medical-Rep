@@ -8,6 +8,7 @@ import 'package:medical_rep/core/utils/location_parser.dart';
 import 'package:medical_rep/core/widgets/custom_app_bar.dart';
 import 'package:medical_rep/features/visit_flow/domain/usecases/validate_location_usecase.dart';
 import 'package:medical_rep/features/visit_flow/presentation/pages/active_visit_screen.dart';
+import 'package:medical_rep/features/visit_flow/presentation/pages/pending_visits_screen.dart';
 import 'package:medical_rep/features/weekly_planning/data/data%20source/weekly_plan_remote_data_source.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/cutom_plan_status_card.dart';
 import 'package:medical_rep/features/weekly_planning/cubit/weekly_plan_cubit.dart';
@@ -278,6 +279,26 @@ class _WeeklyPlanningBody extends StatelessWidget {
               );
             },
           ),
+
+/// To Be Removed
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PendingVisitsScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.history),
+            label: const Text('View Pending Visits'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueAccent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          )
         ],
       ),
     );

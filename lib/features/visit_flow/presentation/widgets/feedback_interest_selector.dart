@@ -13,7 +13,7 @@ class FeedbackInterestSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<VisitFeedbackCubit, VisitFeedbackState>(
       builder: (context, state) {
-        final current = state as VisitFeedbackInitial;
+        final current = state as VisitFeedbackState;
         return Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(

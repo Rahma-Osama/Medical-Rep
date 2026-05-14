@@ -1,40 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:medical_rep/core/styles/app_color.dart';
-import 'package:medical_rep/core/styles/app_text_style.dart';
-import 'package:medical_rep/core/widgets/custom_app_bar.dart';
-import 'package:medical_rep/core/widgets/custom_button_widget.dart';
-import 'package:medical_rep/core/widgets/custom_snackbar_widget.dart';
+import 'package:medical_rep/core/services/connectivity_service.dart';
+import 'package:medical_rep/features/visit_flow/data/datasources/local/visit_local_datasource.dart';
 import 'package:medical_rep/features/visit_flow/data/datasources/remote/visit_remote_datasource.dart';
 import 'package:medical_rep/features/visit_flow/data/repoetries/visit_repo_impl.dart';
-import 'package:medical_rep/features/visit_flow/domain/usecases/visit_usecases.dart';
 import 'package:medical_rep/features/visit_flow/presentation/cubits/visit_feedback/visit_feedback_cubit.dart';
 import 'package:medical_rep/features/visit_flow/presentation/cubits/visit_feedback/visit_feedback_states.dart';
-import 'package:medical_rep/features/visit_flow/presentation/widgets/feedback_attachments_card.dart';
 import 'package:medical_rep/features/visit_flow/presentation/widgets/feedback_followup_card.dart';
 import 'package:medical_rep/features/visit_flow/presentation/widgets/feedback_interest_selector.dart';
+import '../../../../core/widgets/custom_app_bar.dart';
+import 'package:medical_rep/features/visit_flow/domain/usecases/visit_usecases.dart';
 
+import '../widgets/feedback_attachments_card.dart';
 
 class VisitFeedbackScreen extends StatelessWidget {
   final String visitId;
+  final String doctorName;
+  final String clinicName;
   final bool prefillSampleGiven;
 
   const VisitFeedbackScreen({
     super.key,
     required this.visitId,
     required this.prefillSampleGiven,
+    required this.doctorName,
+    required this.clinicName,
   });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) {
+        // نصيحة: يفضل مستقبلاً استخدام GetIt لعمل Dependency Injection بدل التعريف اليدوي هنا
         final remoteDataSource = VisitRemoteDataSourceImpl();
-        final repository = VisitRepositoryImpl(remoteDataSource);
+        final local = VisitLocalDataSourceImpl();
+        final connectivity = ConnectivityService();
+        final repository = VisitRepositoryImpl(remoteDataSource, local, connectivity);
+
         return VisitFeedbackCubit(
+          // الآن سيتم التعرف على الـ UseCase بشكل صحيح لأنه مستورد من الملف الموحد
           submitVisitFeedback: SubmitVisitFeedbackUseCase(repository),
           visitId: visitId,
           prefillSampleGiven: prefillSampleGiven,
+          doctorName: doctorName,
+          clinicName: clinicName,
         );
       },
       child: const _VisitFeedbackView(),
@@ -42,30 +51,45 @@ class VisitFeedbackScreen extends StatelessWidget {
   }
 }
 
-class _VisitFeedbackView extends StatelessWidget {
+class _VisitFeedbackView extends StatefulWidget {
   const _VisitFeedbackView();
 
   @override
-  Widget build(BuildContext context) {
-    final cubit = context.read<VisitFeedbackCubit>();
+  State<_VisitFeedbackView> createState() => _VisitFeedbackViewState();
+}
 
+class _VisitFeedbackViewState extends State<_VisitFeedbackView> {
+  final _notesController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       body: BlocListener<VisitFeedbackCubit, VisitFeedbackState>(
+        listenWhen: (prev, curr) =>
+        prev.isSuccess != curr.isSuccess || prev.errorMessage != curr.errorMessage,
         listener: (context, state) {
-          if (state is VisitFeedbackSuccess) {
-            AppSnackBar.showSuccess(
-              context: context,
-              title: 'Report Submitted!',
-              message: 'Your visit feedback has been saved.',
+          if (state.isSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Report Submitted Successfully!'),
+                backgroundColor: Colors.green,
+              ),
             );
             Navigator.popUntil(context, (route) => route.isFirst);
           }
-          if (state is VisitFeedbackFailure) {
+          if (state.errorMessage != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.errorColor,
+                content: Text(state.errorMessage!),
+                backgroundColor: Colors.red,
               ),
             );
           }
@@ -77,7 +101,7 @@ class _VisitFeedbackView extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Form(
-                  key: cubit.formKey,
+                  key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -91,13 +115,13 @@ class _VisitFeedbackView extends StatelessWidget {
                       const SizedBox(height: 20),
                       _buildSectionTitle('Detailed Notes'),
                       const SizedBox(height: 12),
-                      _buildNotesField(cubit),
+                      _buildNotesField(),
                       const SizedBox(height: 20),
                       _buildSectionTitle('Attachments'),
                       const SizedBox(height: 12),
                       const FeedbackAttachmentsCard(),
                       const SizedBox(height: 30),
-                      _buildSubmitButton(context),
+                      _buildSubmitButton(),
                       const SizedBox(height: 50),
                     ],
                   ),
@@ -113,21 +137,22 @@ class _VisitFeedbackView extends StatelessWidget {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: AppTextStyle.title.copyWith(color: AppColors.grayColor),
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: Colors.grey,
+      ),
     );
   }
 
-  Widget _buildNotesField(VisitFeedbackCubit cubit) {
+  Widget _buildNotesField() {
     return TextFormField(
-      controller: cubit.notesController,
+      controller: _notesController,
       maxLines: 5,
-      validator: (val) {
-        if (val == null || val.trim().isEmpty) return 'Please add visit notes';
-        return null;
-      },
+      validator: (val) =>
+      (val == null || val.trim().isEmpty) ? 'Please add visit notes' : null,
       decoration: InputDecoration(
-        hintText: 'Describe the visit outcome, doctor feedback, next steps...',
-        hintStyle: AppTextStyle.hint,
+        hintText: 'Describe the visit outcome...',
         fillColor: Colors.white,
         filled: true,
         border: OutlineInputBorder(
@@ -138,27 +163,29 @@ class _VisitFeedbackView extends StatelessWidget {
     );
   }
 
-  Widget _buildSubmitButton(BuildContext context) {
+  Widget _buildSubmitButton() {
     return BlocBuilder<VisitFeedbackCubit, VisitFeedbackState>(
+      buildWhen: (prev, curr) => prev.isLoading != curr.isLoading,
       builder: (context, state) {
-        return Container(
+        return SizedBox(
           width: double.infinity,
           height: 60,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryColor.withOpacity(0.3),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
+          child: state.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
               ),
-            ],
-          ),
-          child: state is VisitFeedbackLoading
-              ? Center(child: CircularProgressIndicator(color: AppColors.primaryColor))
-              : CustomElevatedButton(
-            text: 'Submit Report',
-            onPressed: () => context.read<VisitFeedbackCubit>().submitFeedback(),
+            ),
+            onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                context
+                    .read<VisitFeedbackCubit>()
+                    .submitFeedback(_notesController.text);
+              }
+            },
+            child: const Text('Submit Report'),
           ),
         );
       },

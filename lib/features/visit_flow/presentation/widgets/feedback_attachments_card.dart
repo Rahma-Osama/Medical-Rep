@@ -12,7 +12,7 @@ class FeedbackAttachmentsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<VisitFeedbackCubit, VisitFeedbackState>(
       builder: (context, state) {
-        final current = state as VisitFeedbackInitial;
+        final current = state as VisitFeedbackState;
         final cubit = context.read<VisitFeedbackCubit>();
 
         return Container(
