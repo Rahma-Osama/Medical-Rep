@@ -30,13 +30,13 @@ class LoginCubit extends Cubit<LoginState> {
 
       // 2. جلب بيانات المستخدم الحالي فوراً بعد الدخول
       final user = Supabase.instance.client.auth.currentUser;
-      
+
       // 3. قراءة الـ role من الـ metadata (اللي أضفناها في السوبابيز)
-      final String role = user?.userMetadata?['role'] ?? 'user'; 
+      final String role = user?.userMetadata?['role'] ?? 'user';
 
       // 4. إرسال النجاح ومعاه الـ role
       emit(LoginSuccess(role));
-      
+
     } catch (e) {
       emit(LoginFailure("خطأ في تسجيل الدخول: ${e.toString()}"));
     }

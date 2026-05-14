@@ -1,5 +1,4 @@
-import 'package:medical_rep/core/utils/app_failure.dart';
-import 'package:medical_rep/core/utils/result.dart';
+import 'package:medical_rep/core/error/result.dart';
 import 'package:medical_rep/features/visit_flow/domain/entities/visit_feedback.dart';
 import 'package:medical_rep/features/visit_flow/domain/reposetries/visit_repo.dart';
 
@@ -8,7 +7,8 @@ class VerifyVisitLocationUseCase {
   final VisitRepository _repository;
   const VerifyVisitLocationUseCase(this._repository);
 
-  Future<Result<bool, AppFailure>> call(String location) =>
+  // حذفنا AppFailure لأن الـ Result بياخد نوع واحد فقط
+  Future<Result<bool>> call(String location) =>
       _repository.verifyVisitLocation(location);
 }
 
@@ -17,7 +17,7 @@ class EndVisitUseCase {
   final VisitRepository _repository;
   const EndVisitUseCase(this._repository);
 
-  Future<Result<void, AppFailure>> call(String visitId, DateTime endTime) =>
+  Future<Result<void>> call(String visitId, DateTime endTime) =>
       _repository.endVisit(visitId, endTime);
 }
 
@@ -26,6 +26,14 @@ class SubmitVisitFeedbackUseCase {
   final VisitRepository _repository;
   const SubmitVisitFeedbackUseCase(this._repository);
 
-  Future<Result<void, AppFailure>> call(VisitFeedbackEntity feedback) =>
-      _repository.submitVisitFeedback(feedback);
+  Future<Result<void>> call(
+      VisitFeedbackEntity feedback, {
+        required String doctorName,
+        required String clinicName,
+      }) =>
+      _repository.submitVisitFeedback(
+        feedback,
+        doctorName: doctorName,
+        clinicName: clinicName,
+      );
 }

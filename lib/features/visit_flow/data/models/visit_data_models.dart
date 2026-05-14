@@ -13,7 +13,12 @@ class VisitModel extends VisitEntity {
     required super.shift,
     required super.targetProduct,
     required super.startTime,
+    this.lastSeenTime,
+    this.isActive = true,
   });
+
+  final DateTime? lastSeenTime;
+  final bool isActive;
 
   factory VisitModel.fromJson(Map<String, dynamic> json) => VisitModel(
     visitId: json['visit_id'] as String,
@@ -24,6 +29,10 @@ class VisitModel extends VisitEntity {
     shift: json['shift'] as String,
     targetProduct: json['target_product'] as String,
     startTime: DateTime.parse(json['start_time'] as String),
+    lastSeenTime: json['last_seen_time'] != null
+        ? DateTime.parse(json['last_seen_time'])
+        : null,
+    isActive: json['is_active'] ?? true,
   );
 
   Map<String, dynamic> toJson() => {
@@ -35,18 +44,10 @@ class VisitModel extends VisitEntity {
     'shift': shift,
     'target_product': targetProduct,
     'start_time': startTime.toIso8601String(),
+    'last_seen_time': lastSeenTime?.toIso8601String(),
+    'is_active': isActive,
   };
-
-  // Default tasks are a DATA concern (hardcoded seed data).
-  // Domain entity is clean — this stays here.
-  static List<VisitTaskModel> get defaultTasks => [
-    VisitTaskModel(id: '1', title: 'Product Presentation'),
-    VisitTaskModel(id: '2', title: 'Answer Doctor Questions'),
-    VisitTaskModel(id: '3', title: 'Discuss Clinical Data'),
-    VisitTaskModel(id: '4', title: 'Leave Marketing Material'),
-  ];
 }
-
 // ── VisitTaskModel ────────────────────────────────────────────
 class VisitTaskModel extends VisitTaskEntity {
   const VisitTaskModel({

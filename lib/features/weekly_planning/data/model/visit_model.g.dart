@@ -25,13 +25,17 @@ class VisitModelAdapter extends TypeAdapter<VisitModel> {
       date: fields[5] as String?,
       dayName: fields[6] as String?,
       status: fields[7] as String,
+      specialty: fields[8] as String?,
+      clinicName: fields[9] as String?,
+      location: fields[10] as String?,
+      targetProduct: fields[11] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, VisitModel obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.brick)
       ..writeByte(1)
@@ -47,7 +51,15 @@ class VisitModelAdapter extends TypeAdapter<VisitModel> {
       ..writeByte(6)
       ..write(obj.dayName)
       ..writeByte(7)
-      ..write(obj.status);
+      ..write(obj.status)
+      ..writeByte(8)
+      ..write(obj.specialty)
+      ..writeByte(9)
+      ..write(obj.clinicName)
+      ..writeByte(10)
+      ..write(obj.location)
+      ..writeByte(11)
+      ..write(obj.targetProduct);
   }
 
   @override

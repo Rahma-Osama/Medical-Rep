@@ -21,11 +21,11 @@ android {
 
 defaultConfig {
     applicationId = "com.example.medical_rep"
-    minSdk = 21
+    minSdk = flutter.minSdkVersion
     targetSdk = 35
 
-    versionCode = flutter.versionCode().toInt()
-    versionName = flutter.versionName()
+    versionCode = flutter.versionCode
+    versionName = flutter.versionName
 }
 
     buildTypes {
