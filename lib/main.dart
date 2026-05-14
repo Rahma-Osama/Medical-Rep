@@ -117,7 +117,6 @@ import 'package:medical_rep/features/home/views/home_screen.dart';
 import 'package:medical_rep/features/weekly_planning/data/model/visit_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-
 import 'package:medical_rep/core/services/services.dart';
 import 'package:medical_rep/features/doctor_and_pharmacy/presentation/cubit/medical_cubit.dart';
 import 'package:medical_rep/features/doctor_and_pharmacy/presentation/views/entities_list_page.dart';
@@ -130,7 +129,8 @@ void main() async {
 
   await Supabase.initialize(
     url: 'https://chhwbitslfgqmlkuubsr.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNoaHdiaXRzbGZncW1sa3V1YnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MDAxMzgsImV4cCI6MjA5NDA3NjEzOH0.g2cZBSw3uBXJb7sq2SYOEyGgh2rNwXlva03OviOwmcI',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNoaHdiaXRzbGZncW1sa3V1YnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MDAxMzgsImV4cCI6MjA5NDA3NjEzOH0.g2cZBSw3uBXJb7sq2SYOEyGgh2rNwXlva03OviOwmcI',
   );
 
   await Hive.initFlutter();
@@ -175,6 +175,7 @@ class MedicalApp extends StatelessWidget {
 
       return data['role'] ?? 'user';
     } catch (e) {
+      print("user");
       return 'user'; // الافتراضي لو حصل مشكلة
     }
   }
