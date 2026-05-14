@@ -70,10 +70,18 @@ class _HomeScreenState extends State<HomeScreen> {
       body: IndexedStack(
         index: _navIndex,
         children: [
+          // Tab 0: Home Page
           _buildHomeScroll(context, topInset, stackHeight),
-          _placeholderTab('Visits'),
-          _planningTab(context),
+
+          const WeeklyPlanningView(),
+
+   
+          const CreatePlanScreen(),
+
+          // Tab 3: Reports
           _placeholderTab('Reports'),
+
+          // Tab 4: Profile Page
           const ProfileScreen(
             showBackButton: false,
           ),
@@ -135,11 +143,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                       onQrTap: () {},
                       onSummaryTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const WeeklyPlanningView(),
-                          ),
-                        );
+                        // عند الضغط على ملخص الكارد يفتح صفحة عرض الخطة
+                        setState(() => _navIndex = 1);
                       },
                       onTargetTap: () {},
                     ),
@@ -183,11 +188,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     onDoctorsList: () {},
                     onPharmacyList: () {},
                     onWeeklyPlanning: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const CreatePlanScreen(),
-                        ),
-                      );
+                      // عند الضغط على Weekly Planning من الخدمات يفتح صفحة الإنشاء
+                      setState(() => _navIndex = 2);
                     },
                     onDrafts: () => setState(() => _navIndex = 1),
                   ),
@@ -215,34 +217,6 @@ class _HomeScreenState extends State<HomeScreen> {
       statusLabel: '—',
     ),
   ];
-
-  Widget _planningTab(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Planning',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const CreatePlanScreen(),
-                  ),
-                );
-              },
-              child: const Text('Open weekly plan'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _placeholderTab(String title) {
     return Center(

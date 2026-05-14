@@ -18,7 +18,7 @@ class ProfileInfoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.blackColor.withValues(alpha: 0.05),
+            color: AppColors.blackColor.withOpacity(0.05),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
