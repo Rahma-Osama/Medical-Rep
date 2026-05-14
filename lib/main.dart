@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:medical_rep/features/home/views/home_screen.dart';
 import 'package:medical_rep/features/weekly_planning/data/model/visit_model.dart';
+import 'package:medical_rep/features/weekly_planning/views/create_weekly_plan_view.dart';
+import 'package:medical_rep/features/weekly_planning/views/weekly_plan_status_view.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Imports الخاصة بمشروعك
@@ -58,7 +61,7 @@ class MedicalApp extends StatelessWidget {
       // تشغيل صفحتك كبداية للتطبيق مع الـ Cubit بتاعها
       home: BlocProvider(
         create: (context) => getIt<MedicalCubit>()..fetchEntities(),
-        child: const EntitiesListPage(),
+        child: const HomeScreen(),
       ),
     );
   }
