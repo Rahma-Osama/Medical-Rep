@@ -143,45 +143,46 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
     }
   }
 
-  Future<void> submitPlan() async {
-    emit(WeeklyPlanLoading(
+  // استبدلي دالة submitPlan في الـ Cubit بهذا الكود:
+Future<void> submitPlan() async {
+  // 1. حماية ضد الضغط المتكرر: لو الستيت Loading ميعملش حاجة
+  if (state is WeeklyPlanLoading) return;
+
+  emit(WeeklyPlanLoading(
+    weeklyData: _weeklyData,
+    selectedDayIndex: selectedDayIndex,
+    tempVisit: _tempVisit,
+    completionRate: _calculateCompletion,
+  ));
+
+  try {
+    // 2. 🔹 نكتفي بـ saveWeeklyPlan لأنها دلوقت بقت بتسيف محلي وترفع للسيرفر "صح"
+    await saveVisitUseCase.repository.saveWeeklyPlan(_weeklyData); 
+    
+    // 3. تحديث وقت المزامنة للـ 5 أيام
+    if (Hive.isBoxOpen('settings')) {
+      await Hive.box('settings').put('last_sync_date', DateTime.now().millisecondsSinceEpoch);
+    }
+    
+    emit(WeeklyPlanSuccess(
       weeklyData: _weeklyData,
       selectedDayIndex: selectedDayIndex,
       tempVisit: _tempVisit,
       completionRate: _calculateCompletion,
     ));
 
-    try {
-      await saveVisitUseCase.repository.saveWeeklyPlan(_weeklyData); 
-      
-      try {
-        await submitPlanUseCase.call(); 
-        // 🔹 طالما الخطة اترجمت واترفعت بنجاح، بنحدث وقت الـ Sync لبداية الـ 5 أيام
-        if (Hive.isBoxOpen('settings')) {
-          await Hive.box('settings').put('last_sync_date', DateTime.now().millisecondsSinceEpoch);
-        }
-      } catch (e) {
-        print("Hive/Submit Error: $e");
-      }
-      
-      emit(WeeklyPlanSuccess(
-        weeklyData: _weeklyData,
-        selectedDayIndex: selectedDayIndex,
-        tempVisit: _tempVisit,
-        completionRate: _calculateCompletion,
-      ));
+    print(" Submit Success - Local & Remote Synced");
 
-    } catch (e) {
-      emit(WeeklyPlanError(
-        e.toString(),
-        weeklyData: _weeklyData,
-        selectedDayIndex: selectedDayIndex,
-        tempVisit: _tempVisit,
-        completionRate: _calculateCompletion,
-      ));
-    }
+  } catch (e) {
+    emit(WeeklyPlanError(
+      "خطأ في الرفع: ${e.toString()}",
+      weeklyData: _weeklyData,
+      selectedDayIndex: selectedDayIndex,
+      tempVisit: _tempVisit,
+      completionRate: _calculateCompletion,
+    ));
   }
-
+}
   void refreshPlanStatus() async {
     emit(WeeklyPlanLoading(
       weeklyData: Map.from(_weeklyData),
