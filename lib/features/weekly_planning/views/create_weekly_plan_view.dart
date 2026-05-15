@@ -8,6 +8,7 @@ import 'package:medical_rep/core/widgets/custom_button_widget.dart';
 import 'package:medical_rep/core/widgets/custom_snackbar_widget.dart';
 import 'package:medical_rep/features/weekly_planning/cubit/weekly_plan_cubit.dart';
 import 'package:medical_rep/features/weekly_planning/cubit/weekly_plan_state.dart';
+import 'package:medical_rep/features/weekly_planning/data/model/visit_model.dart';
 import 'package:medical_rep/features/weekly_planning/domain/entities/visit_entity.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/custom_days_tab.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/custom_dropdown_widget.dart';
@@ -15,19 +16,28 @@ import 'package:medical_rep/features/weekly_planning/views/widgets/segmented_con
 import 'package:medical_rep/features/weekly_planning/views/weekly_plan_status_view.dart';
 
 class CreatePlanScreen extends StatelessWidget {
-  const CreatePlanScreen({super.key});
+  final VisitModel? initialVisit;
+  const CreatePlanScreen({super.key, this.initialVisit});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider<WeeklyPlanCubit>(
-      create: (context) => getIt<WeeklyPlanCubit>(),
-      child: const _CreatePlanBody(),
+      create: (_) {
+        final cubit = getIt<WeeklyPlanCubit>();
+        if (initialVisit != null) {
+          cubit.forceEnableSubmission();
+          // You can populate data into the Cubit here if needed
+        }
+        return cubit;
+      },
+      child: _CreatePlanBody(initialVisit: initialVisit), 
     );
   }
 }
 
 class _CreatePlanBody extends StatelessWidget {
-  const _CreatePlanBody();
+  final VisitModel? initialVisit;
+  const _CreatePlanBody({this.initialVisit});
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +49,7 @@ class _CreatePlanBody extends StatelessWidget {
             title: "Full Plan Submitted!",
             message: "Plan Submitted Successfully! Waiting for approval.",
           );
-          Navigator.pushReplacement(
+          Navigator.push(
             context,
             MaterialPageRoute<void>(
               builder: (_) => const WeeklyPlanningView(),
@@ -129,9 +139,13 @@ class _CreatePlanBody extends StatelessWidget {
                       state is WeeklyPlanLoading
                           ? const Center(child: CircularProgressIndicator())
                           : CustomElevatedButton(
-                        text: "Submit Full Plan",
-                        onPressed: !cubit.isPlanComplete ? null : () => cubit.submitPlan(),
-                      ),
+                              text: (cubit.isPlanAlreadySubmitted && initialVisit == null) 
+                                  ? "Plan Submitted" 
+                                  : "Submit Full Plan",
+                              onPressed: (cubit.isPlanAlreadySubmitted && initialVisit == null) || !cubit.isPlanComplete
+                                  ? null  // Disable button if plan is uploaded and not editing
+                                  : () => cubit.submitPlan(), 
+                            ),
                       const SizedBox(height: 50),
                     ],
                   ),
@@ -177,7 +191,7 @@ class _CreatePlanBody extends StatelessWidget {
       borderRadius: BorderRadius.circular(24),
       boxShadow: [
         BoxShadow(
-          color: Colors.black. withOpacity( 0.05),
+          color: Colors.black.withOpacity(0.05),
           blurRadius: 20,
           offset: const Offset(0, 10),
         ),

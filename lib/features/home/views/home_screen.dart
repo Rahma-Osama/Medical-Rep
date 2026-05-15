@@ -41,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadDashboard();
   }
 
+
   Future<void> _loadDashboard() async {
     setState(() {
       _loadingDashboard = true;
@@ -208,7 +209,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     onWeeklyPlanning: () {
                       setState(() => _navIndex = 2);
                     },
+
                     onDrafts: _openPendingVisitsScreen,
+
+                    onDrafts: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context)=>const PendingVisitsScreen()));
+                    },
+
                   ),
                   const SizedBox(height: 28),
                   HomeRecentVisitsSection(

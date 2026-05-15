@@ -1,37 +1,44 @@
 import 'package:hive/hive.dart';
 
 @HiveType(typeId: 10)
+
+part 'pending_feedback_hive_model.g.dart';
+
+@HiveType(typeId: 2)
+
 class PendingFeedbackHiveModel extends HiveObject {
   @HiveField(0)
-  String visitId;
+  final String visitId;
 
   @HiveField(1)
-  String interestLevel; // stored as string e.g. "high"
+  final String interestLevel;
 
   @HiveField(2)
-  bool sampleGiven;
+  final bool sampleGiven;
 
   @HiveField(3)
-  bool followUpRequired;
+  final bool followUpRequired;
 
   @HiveField(4)
-  String notes;
+  final String notes;
 
   @HiveField(5)
-  List<String> attachmentPaths;
+  final DateTime submittedAt;
 
   @HiveField(6)
-  DateTime submittedAt;
+  final String doctorName;
 
   @HiveField(7)
+  final String clinicName;
+
+  @HiveField(8)
   bool isSynced;
 
-  // for display in pending screen
-  @HiveField(8)
-  String doctorName;
-
   @HiveField(9)
-  String clinicName;
+  DateTime? endTime;
+
+  @HiveField(10)
+  String? targetProduct;
 
   PendingFeedbackHiveModel({
     required this.visitId,
@@ -39,10 +46,11 @@ class PendingFeedbackHiveModel extends HiveObject {
     required this.sampleGiven,
     required this.followUpRequired,
     required this.notes,
-    required this.attachmentPaths,
     required this.submittedAt,
-    this.isSynced = false,
     required this.doctorName,
     required this.clinicName,
+    required this.targetProduct,
+    this.isSynced = false,
+    this.endTime,
   });
 }

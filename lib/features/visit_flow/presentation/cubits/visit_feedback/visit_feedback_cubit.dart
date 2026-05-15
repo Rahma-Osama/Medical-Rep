@@ -9,6 +9,7 @@ import 'package:medical_rep/features/visit_flow/presentation/cubits/visit_feedba
 class VisitFeedbackCubit extends Cubit<VisitFeedbackState> {
   final SubmitVisitFeedbackUseCase _submitVisitFeedback;
   final String visitId;
+  final String targetProduct;
   final String doctorName;
   final String clinicName;
 
@@ -18,6 +19,7 @@ class VisitFeedbackCubit extends Cubit<VisitFeedbackState> {
     required bool prefillSampleGiven,
     required this.doctorName,
     required this.clinicName,
+    required this.targetProduct
   })  : _submitVisitFeedback = submitVisitFeedback,
         super(VisitFeedbackState(sampleGiven: prefillSampleGiven));
 
@@ -52,14 +54,14 @@ class VisitFeedbackCubit extends Cubit<VisitFeedbackState> {
       sampleGiven: state.sampleGiven,
       followUpRequired: state.followUpRequired,
       notes: notes.trim(),
-      attachmentPaths: state.attachmentPaths,
-      submittedAt: DateTime.now(),
+      submittedAt: DateTime.now(), targetProduct: targetProduct,
     );
 
     final result = await _submitVisitFeedback(
       feedback,
       doctorName: doctorName,
       clinicName: clinicName,
+      targetProduct: targetProduct
     );
 
     result.when(

@@ -55,7 +55,6 @@ class _ActiveVisitView extends StatelessWidget {
   const _ActiveVisitView({required this.visit});
 
   @override
-
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
@@ -79,6 +78,7 @@ class _ActiveVisitView extends StatelessWidget {
                     prefillSampleGiven: cubit.state.sampleGiven,
                     doctorName: visit.doctorName,
                     clinicName: visit.clinicName,
+                    targetProduct: visit.targetProduct, // Preserved from dev2
                   ),
                 ),
               );
@@ -106,6 +106,7 @@ class _ActiveVisitView extends StatelessWidget {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.all(20),
+                    // Wrapped items beautifully to maintain format
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -216,4 +217,5 @@ class _ActiveVisitView extends StatelessWidget {
     );
 
     return result ?? false;
-  }}
+  }
+}
