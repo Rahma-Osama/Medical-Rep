@@ -104,7 +104,7 @@ bool canStart = currentStatus.toLowerCase() == 'approved';
         date: visit.date ?? "No Date",
         doctorName: visit.doctor ?? "Unknown Doctor",
         specialty: visit.brick ?? "No Specialty",
-        shift: visit.shift ?? "Morning", // تأكدي إنها مش Null
+        shift: visit.shift ?? "Morning", 
         clinicName: "Clinic",
         location: visit.brick ?? "No Location",
         status: currentStatus,
@@ -117,7 +117,7 @@ bool canStart = currentStatus.toLowerCase() == 'approved';
         showStartVisitButton: canStart, 
         onStartVisit: () {
            print("Starting visit for ${visit.doctor}");
-           // هنا هتفتحي صفحة تفاصيل الزيارة أو تبدأي الـ Location Tracking
+  
         },
                               ),
                             );
