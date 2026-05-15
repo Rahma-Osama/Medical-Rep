@@ -36,21 +36,13 @@ class LoginScreen extends StatelessWidget {
             if (state is LoginLoading) {
               // ممكن تظهري Loading Overlay هنا لو حابة
             }
-            if (state is LoginSuccess) {
-              if (state.role == 'admin') {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const AdminPanelScreen()),
-                );
-              } else {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const HomeScreen()),
-                );
-              }
-            }
+           if (state is LoginSuccess) {
+  if (state.role == 'admin') {
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminPanelScreen()));
+  } else {
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+  }
+}
             if (state is LoginFailure) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

@@ -5,7 +5,7 @@ abstract class WeeklyPlanRepository {
   Map<int, List<VisitEntity>> getLocalPlan(); 
   Future<void> submitFullPlan();
   
-  // الدوال الجديدة اللي هنحتاجها للسوبا بيز
+
   Future<List<String>> getAreasFromSupabase();
   Future<List<String>> getDoctorsByArea(String areaName);
   Future<void> syncPlanStatusWithServer();
