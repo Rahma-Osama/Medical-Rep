@@ -17,7 +17,7 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
     try {
       final response = await Supabase.instance.client
           .from('doctors')
-          .select('area_name');
+          .select('area_name'); 
 
       final List data = response as List;
       final List<String> areas = data
@@ -61,13 +61,11 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
           date: entity.date,
           dayName: entity.dayName,
           status: 'pending',
-          // الـ lat والـ long هيتم ملئهم في الـ remoteDS عند الـ stream/cache
         )).toList();
-
-        // 1. حفظ محلي في Hive (الجزء القديم للـ Planning)
+        
+        // حفظ محلي في Hive
         await localDS.saveDayVisitsLocally(entry.key, modelsList);
 
-        // 2. تجهيز البيانات للرفع
         for (var model in modelsList) {
           allVisitsToUpload.add({
             'user_id': userId,
@@ -80,16 +78,16 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
             'status': 'pending',
           });
         }
-      }
+      } // 🔹 القوس ده كان ناقص عندك
 
       if (allVisitsToUpload.isNotEmpty) {
         await Supabase.instance.client
             .from('visits')
             .upsert(
-            allVisitsToUpload,
-            onConflict: 'user_id, visit_date, doctor_name'
-        );
-        print("✅ Plan synced with Supabase");
+              allVisitsToUpload, 
+              onConflict: 'user_id, visit_date, doctor_name'
+            );
+        print("✅ Plan synced with Supabase (Upserted)");
       }
     } catch (e) {
       print("❌ Repository Error: $e");
@@ -102,8 +100,7 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
     final cachedModelsMap = localDS.getCachedVisits();
     return cachedModelsMap.map((key, modelsList) => MapEntry(
       key,
-      modelsList
-          .map((model) => VisitEntity(
+      modelsList.map((model) => VisitEntity(
         brick: model.brick,
         doctor: model.doctor,
         shift: model.shift,
@@ -111,8 +108,7 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
         notes: model.notes,
         date: model.date,
         dayName: model.dayName,
-      ))
-          .toList(),
+      )).toList(),
     ));
   }
 
@@ -124,16 +120,22 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
       for (var dayVisits in visitsMap.values) {
         allVisitsToUpload.addAll(dayVisits);
       }
-      await remoteDS.uploadPlan(allVisitsToUpload);
+      await remoteDS.uploadPlan(allVisitsToUpload); 
     } else {
       throw Exception("لا توجد بيانات محفوظة لرفعها");
     }
   }
 
-  // 🔹 الميثود الجديدة اللي الشاشة محتاجاها
+  // 🔹 الميثود دي هي اللي بتخلي الشاشة تتحدث لوحدها (Realtime)
   @override
   Stream<List<VisitModel>> getVisitsWithCache() {
-    return remoteDS.getVisitsWithCache();
+    final String? userId = Supabase.instance.client.auth.currentUser?.id;
+    return Supabase.instance.client
+        .from('visits')
+        .stream(primaryKey: ['id']) 
+        .eq('user_id', userId ?? '')
+        .order('visit_date')
+        .map((data) => data.map((json) => VisitModel.fromJson(json)).toList());
   }
 
   @override
@@ -155,8 +157,8 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
 
       for (var visit in cachedVisits) {
         final match = dataFromServer.firstWhere(
-              (serverRow) =>
-          serverRow['visit_date'] == visit.date &&
+          (serverRow) =>
+              serverRow['visit_date'] == visit.date &&
               serverRow['doctor_name'] == visit.doctor,
           orElse: () => null,
         );
@@ -172,7 +174,7 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
         await box.addAll(cachedVisits);
       }
     } catch (e) {
-      print("❌ Sync Error: $e");
+      print("❌ خطأ أثناء المزامنة: $e");
     }
   }
 }
