@@ -33,86 +33,88 @@ class _WeeklyPlanningBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
-      body: Stack(
-        children: [
-          // 1️⃣ الـ Stream شغال صامت في الخلفية: لو في نت بيحدث الـ Cache أوتوماتيك
-          StreamBuilder<List<VisitModel>>(
-            stream: WeeklyPlanRemoteDataSourceImpl().getVisitsWithCache(), // 🔹 استخدمي الدالة اللي بتكاش
-            builder: (context, snapshot) {
-              return const SizedBox.shrink(); // مخفي تماماً مش بيعطل الـ UI
-            },
-          ),
+      body: StreamBuilder<List<VisitModel>>(
+        // 🔹 إحنا بنراقب سوبابيز مباشرة هنا
+        stream: WeeklyPlanRemoteDataSourceImpl().getVisitsWithCache(), 
+        builder: (context, snapshot) {
+          
+          // 1. حالة التحميل
+          if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          // 2️⃣ الـ UI الأساسي بيقرأ من الكاش فوراً (شغال Online / Offline بلمح البصر)
-          ValueListenableBuilder(
-            valueListenable: Hive.box<VisitModel>('weekly_visits_box').listenable(),
-            builder: (context, Box<VisitModel> box, _) {
-              final List<VisitModel> allVisits = box.values.toList();
+          // 2. حالة الخطأ
+          if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}"));
+          }
 
-              return CustomScrollView(
-                slivers: [
-                  const CustomAppBar(label: 'Weekly Plan Status'),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 15),
-                          
-                          if (allVisits.isEmpty)
-                            const Center(
-                              child: Padding(
-                                padding: EdgeInsets.only(top: 60),
-                                child: Text(
-                                  "No Plan Yet",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: Colors.grey, fontSize: 16, height: 1.5),
-                                ),
-                              ),
-                            )
-                          else
-                            ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: allVisits.length,
-                              itemBuilder: (context, index) {
-                                final visit = allVisits[index];
-                                String currentStatus = visit.status ?? 'pending';
-                                
-                                Color statusColor = currentStatus.toLowerCase() == 'approved' 
-                                    ? Colors.green : currentStatus.toLowerCase() == 'rejected' 
-                                    ? Colors.red : Colors.orange;
+          // 3. الداتا وصلت (سواء من الكاش أو من السيرفر لايف)
+          final List<VisitModel> allVisits = snapshot.data ?? [];
 
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: CutomPlanStatusCard(
-                                    day: visit.dayName ?? "No Day", 
-                                    date: visit.date ?? "No Date",
-                                    doctorName: visit.doctor ?? "Unknown Doctor",
-                                    specialty: visit.brick ?? "No Specialty",
-                                    shift: visit.shift,
-                                    clinicName: "Clinic",
-                                    location: visit.brick ?? "No Location",
-                                    status: currentStatus, 
-                                    color: statusColor, 
-                                    icon: currentStatus.toLowerCase() == 'approved' 
-                                        ? Icons.check_circle_rounded : Icons.access_time_filled_rounded, 
-                                    onStartVisit: () {},
-                                  ),
-                                );
-                              },
+          return CustomScrollView(
+            slivers: [
+              const CustomAppBar(label: 'Weekly Plan Status'),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 15),
+                      
+                      if (allVisits.isEmpty)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.only(top: 60),
+                            child: Text(
+                              "No Plan Yet",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey, fontSize: 16, height: 1.5),
                             ),
-                          const SizedBox(height: 100),
-                        ],
-                      ),
-                    ),
+                          ),
+                        )
+                      else
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: allVisits.length,
+                          itemBuilder: (context, index) {
+                            final visit = allVisits[index];
+                            
+                            // 🔹 هنا الحالة (Status) هتيجي متحدثة فوراً من السيرفر
+                            String currentStatus = visit.status ?? 'pending';
+                            
+                            Color statusColor = currentStatus.toLowerCase() == 'approved' 
+                                ? Colors.green : currentStatus.toLowerCase() == 'rejected' 
+                                ? Colors.red : Colors.orange;
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: CutomPlanStatusCard(
+                                day: visit.dayName ?? "No Day", 
+                                date: visit.date ?? "No Date",
+                                doctorName: visit.doctor ?? "Unknown Doctor",
+                                specialty: visit.brick ?? "No Specialty",
+                                shift: visit.shift,
+                                clinicName: "Clinic",
+                                location: visit.brick ?? "No Location",
+                                status: currentStatus, 
+                                color: statusColor, 
+                                icon: currentStatus.toLowerCase() == 'approved' 
+                                    ? Icons.check_circle_rounded : Icons.access_time_filled_rounded, 
+                                onStartVisit: () {},
+                              ),
+                            );
+                          },
+                        ),
+                      const SizedBox(height: 100),
+                    ],
                   ),
-                ],
-              );
-            },
-          ),
-        ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

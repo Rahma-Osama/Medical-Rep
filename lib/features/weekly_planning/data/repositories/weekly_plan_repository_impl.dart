@@ -15,14 +15,14 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
   @override
   Future<List<String>> getAreasFromSupabase() async {
     try {
-      // نستخدم اسم الجدول "doctors" كما هو في الصورة
+ 
       final response = await Supabase.instance.client
           .from('doctors')
-          .select('area_name'); // تأكدي إن الحروف كلها Small في قاعدة البيانات
+          .select('area_name'); 
 
       final List data = response as List;
 
-      // جربي تطبعي الداتا الخام اللي راجعة عشان تشوفي شكلها
+  
       print("Raw response: $data");
 
       final List<String> areas = data
@@ -50,12 +50,6 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
     return data.map((e) => e['name'] as String).toList();
   }
 
-  // --- جزء الحفظ والرفع (لم يتم تغييره) ---
-
-// في ملف WeeklyPlanRepositoryImpl
-  @override
-  @override
-// استبدلي دالة saveWeeklyPlan في الـ Repository بهذا الكود:
 @override
 Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
   try {
@@ -75,10 +69,10 @@ Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
         status: 'pending',
       )).toList();
       
-      // 1. حفظ محلي في Hive
+
       await localDS.saveDayVisitsLocally(entry.key, modelsList);
 
-      // 2. تجهيز البيانات للرفع
+
       for (var model in modelsList) {
         allVisitsToUpload.add({
           'user_id': userId,
@@ -93,18 +87,18 @@ Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
       }
     }
 
-    // 3. 🔹 الحل السحري: استخدام upsert ومنع التكرار
+  
     if (allVisitsToUpload.isNotEmpty) {
       await Supabase.instance.client
           .from('visits')
           .upsert(
             allVisitsToUpload, 
-            onConflict: 'user_id, visit_date, doctor_name' // يمنع تكرار نفس الدكتور لنفس اليوزر في نفس اليوم
+            onConflict: 'user_id, visit_date, doctor_name'
           );
       print("✅ Plan synced with Supabase (Upserted)");
     }
   } catch (e) {
-    print("❌ Repository Error: $e");
+    print(" Repository Error: $e");
     rethrow;
   }
 }
@@ -137,7 +131,7 @@ Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
         allVisitsToUpload.addAll(dayVisits);
       }
       await remoteDS
-          .uploadPlan(allVisitsToUpload); // يرفع للـ visits في سوبا بيز
+          .uploadPlan(allVisitsToUpload); 
     } else {
       throw Exception("لا توجد بيانات محفوظة لرفعها");
     }
@@ -156,7 +150,7 @@ Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
 
       final List dataFromServer = response as List;
 
-      // 🔹 تعديل هنا: استخدمي بوكس 'weekly_visits_box' الموحد
+
       final box = Hive.box<VisitModel>('weekly_visits_box');
 
       bool isAnyVisitUpdated = false;
@@ -176,14 +170,20 @@ Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
         }
       }
 
-      // إعادة حفظ الحالات المحدثة لو حصل تغيير
+
       if (isAnyVisitUpdated) {
         await box.clear();
         await box.addAll(cachedVisits);
         print("🔄 تم تحديث حالات الخطة في الكاش الموحد بنجاح");
       }
     } catch (e) {
-      print("❌ خطأ أثناء المزامنة: $e");
+      print(" خطأ أثناء المزامنة: $e");
     }
   }
+  Stream<List<Map<String, dynamic>>> watchVisits() {
+  return Supabase.instance.client
+      .from('visits')
+      .stream(primaryKey: ['id']) 
+      .order('visit_date');
+}
 }
