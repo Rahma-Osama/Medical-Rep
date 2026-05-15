@@ -65,7 +65,7 @@ class _WeeklyPlanningBody extends StatelessWidget {
                               child: Padding(
                                 padding: EdgeInsets.only(top: 60),
                                 child: Text(
-                                  "لا توجد خطة حالية أو انتهت صلاحية الخمس أيام.\nبرجاء إدخال خطة جديدة.",
+                                  "No Plan Yet",
                                   textAlign: TextAlign.center,
                                   style: TextStyle(color: Colors.grey, fontSize: 16, height: 1.5),
                                 ),

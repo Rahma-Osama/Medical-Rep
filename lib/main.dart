@@ -39,6 +39,7 @@ void main() async {
     await Hive.openBox('weekly_plan_box');
   }
 
+
   setupServiceLocator();
 
   runApp(const MedicalApp());
