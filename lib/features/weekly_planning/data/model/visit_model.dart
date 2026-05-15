@@ -19,14 +19,35 @@ class VisitModel extends HiveObject {
   String? notes;
 
   @HiveField(5)
-  String? date; // التاريخ بصيغة String مؤقتاً
+  String? date;
 
   @HiveField(6)
   String? dayName;
+
   @HiveField(7)
   String status;
 
+  @HiveField(8)
+  String? specialty;
+
+  @HiveField(9)
+  String? clinicName;
+
+  @HiveField(10)
+  double? lat;
+
+  @HiveField(11)
+  double? long;
+
+  @HiveField(12)
+  String? targetProduct;
+
+  // 1. إضافة الـ ID اللي سوبابيز بيستخدمه (UUID)
+  @HiveField(13)
+  String? visitId;
+
   VisitModel({
+    this.visitId, // أضفناه هنا
     this.brick,
     this.doctor,
     this.shift = "AM",
@@ -35,29 +56,47 @@ class VisitModel extends HiveObject {
     this.date,
     this.dayName,
     this.status = "pending",
+    this.specialty,
+    this.clinicName,
+    this.lat,
+    this.long,
+    this.targetProduct,
   });
 
-  // التحويل لـ JSON متوافق 100% مع أسماء أعمدة الداتا بيز
-// التعديل الأفضل في toJson
-Map<String, dynamic> toJson() => {
-      "visit_date": date,
-      "day_name": dayName,
-      "brick": brick,
-      "doctor_name": doctor,
-      "shift": shift,
-      "visit_type": type,
-      "notes": notes,
-      "status": status, // استخدمي المتغير status بدل الكلمة الثابتة
-    };
-      factory VisitModel.fromJson(Map<String, dynamic> json) {
+  // 2. تحديث toJson عشان تشمل الـ ID لو موجود
+  Map<String, dynamic> toJson() => {
+    "id": visitId, // مهم جداً للـ Update
+    "visit_date": date,
+    "day_name": dayName,
+    "brick": brick,
+    "doctor_name": doctor,
+    "shift": shift,
+    "visit_type": type,
+    "notes": notes,
+    "status": status,
+    "specialty": specialty,
+    "clinic_name": clinicName,
+    "location": null,
+    "target_product": targetProduct,
+  };
+
+  // 3. تحديث fromJson عشان تقرأ الـ ID (الـ UUID) من سوبابيز
+  factory VisitModel.fromJson(Map<String, dynamic> json) {
     return VisitModel(
-  
-      doctor: json['doctor_name'], // اتأكدي إن الاسم هنا زي اللي في سوبابيز
+      visitId: json['id']?.toString(), // قراءة الـ UUID من عمود id
+      doctor: json['doctor_name'],
       date: json['visit_date'],
       dayName: json['day_name'],
       brick: json['brick'],
       status: json['status'] ?? 'pending',
-      shift: json['shift'],
+      shift: json['shift'] ?? 'AM',
+      type: json['visit_type'] ?? 'Single',
+      notes: json['notes'] ?? '',
+      specialty: json['specialty'],
+      clinicName: json['clinic_name'],
+      lat: json['latitude'] != null ? double.tryParse(json['latitude'].toString()) : null,
+      long: json['longitude'] != null ? double.tryParse(json['longitude'].toString()) : null,
+      targetProduct: json['target_product'],
     );
   }
 }

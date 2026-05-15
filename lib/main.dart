@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:medical_rep/features/admin/view/admin_page.dart';
 import 'package:medical_rep/features/home/views/home_screen.dart';
+import 'package:medical_rep/features/visit_flow/data/datasources/local/hive_adapters/pending_feedback_hive_model.dart';
 import 'package:medical_rep/features/weekly_planning/data/model/visit_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:medical_rep/core/services/services.dart';
-import 'package:medical_rep/features/doctor_and_pharmacy/presentation/cubit/medical_cubit.dart';
-import 'package:medical_rep/features/doctor_and_pharmacy/presentation/views/entities_list_page.dart';
+
 
 import 'features/Auth/views/LoginView.dart';
 
 void main() async {
+
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
@@ -23,10 +23,14 @@ void main() async {
 
   await Hive.initFlutter();
 
+
   if (!Hive.isAdapterRegistered(0)) {
     Hive.registerAdapter(VisitModelAdapter());
   }
 
+  if (!Hive.isAdapterRegistered(2)) {
+    Hive.registerAdapter(PendingFeedbackHiveModelAdapter());
+  }
   if (!Hive.isBoxOpen('weekly_visits_box')) {
     await Hive.openBox<VisitModel>('weekly_visits_box');
   }
@@ -34,7 +38,9 @@ void main() async {
   if (!Hive.isBoxOpen('settings')) {
     await Hive.openBox('settings');
   }
-
+  if (!Hive.isBoxOpen('pending_feedbacks')) {
+    await Hive.openBox<PendingFeedbackHiveModel>('pending_feedbacks');
+  }
   if (!Hive.isBoxOpen('weekly_plan_box')) {
     await Hive.openBox('weekly_plan_box');
   }
@@ -47,6 +53,7 @@ void main() async {
 
 class MedicalApp extends StatelessWidget {
   const MedicalApp({super.key});
+
 
   Future<String> _getUserRole() async {
     final user = Supabase.instance.client.auth.currentUser;

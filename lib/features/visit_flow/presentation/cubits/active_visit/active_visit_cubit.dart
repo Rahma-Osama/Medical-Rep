@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:medical_rep/core/utils/app_failure.dart';
 import 'package:medical_rep/features/visit_flow/domain/entities/visit.dart';
-import 'package:medical_rep/features/visit_flow/domain/entities/visit_task.dart';
 import 'package:medical_rep/features/visit_flow/domain/usecases/visit_usecases.dart';
-import 'package:medical_rep/features/visit_flow/presentation/cubits/active_visit/active_visit_state.dart';
+import 'active_visit_state.dart';
 
 class ActiveVisitCubit extends Cubit<ActiveVisitState> {
   final VerifyVisitLocationUseCase _verifyVisitLocation;
@@ -13,59 +11,62 @@ class ActiveVisitCubit extends Cubit<ActiveVisitState> {
 
   Timer? _timer;
 
+  DateTime _lastActiveTime = DateTime.now();
+
   ActiveVisitCubit({
     required VerifyVisitLocationUseCase verifyVisitLocation,
     required EndVisitUseCase endVisit,
     required this.visit,
-    required List<VisitTaskEntity> initialTasks,
   })  : _verifyVisitLocation = verifyVisitLocation,
         _endVisit = endVisit,
-        super(ActiveVisitState()) {
+        super(const ActiveVisitState()) {
     _startTimer();
     verifyLocation();
+
+    _lastActiveTime = visit.startTime;
   }
 
-  // ── Timer Logic ──────────────────────────────────────────────
+  // ── TIMER ──
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      emit(state.copyWith(elapsed: state.elapsed + const Duration(seconds: 1)));
+      emit(state.copyWith(tick: state.tick + 1));
     });
   }
 
+  // ── ELAPSED TIME ──
+  Duration get elapsed {
+    return DateTime.now().difference(_lastActiveTime);
+  }
+
   String get formattedTime {
-    final h = state.elapsed.inHours.toString().padLeft(2, '0');
-    final m = (state.elapsed.inMinutes % 60).toString().padLeft(2, '0');
-    final s = (state.elapsed.inSeconds % 60).toString().padLeft(2, '0');
+    final d = elapsed;
+    final h = d.inHours.toString().padLeft(2, '0');
+    final m = (d.inMinutes % 60).toString().padLeft(2, '0');
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
     return '$h:$m:$s';
   }
 
-  // ── Location Logic (Clean Architecture Way) ──────────────────
+  // ── LOCATION ──
   Future<void> verifyLocation() async {
     emit(state.copyWith(locationStatus: LocationStatus.verifying));
 
     final result = await _verifyVisitLocation(visit.location);
 
     result.when(
-      success: (isVerified) => emit(state.copyWith(
-        locationStatus: isVerified ? LocationStatus.verified : LocationStatus.failed,
-      )),
-      failure: (AppFailure f) {
+      success: (isVerified) {
+        emit(state.copyWith(
+          locationStatus:
+          isVerified ? LocationStatus.verified : LocationStatus.failed,
+        ));
+      },
+      // تم حذف الـ Explicit Type (AppFailure) ليتوافق مع الـ Result<T>
+      onFailure: (f) {
         emit(state.copyWith(
           locationStatus: LocationStatus.failed,
-          errorMessage: f.message,
         ));
       },
     );
   }
-
-  // ── Tasks & Notes Logic
-  // void toggleTask(String taskId) {
-  //   final updatedTasks = state.tasks.map((task) {
-  //     if (task.id == taskId) return task.copyWith(isDone: !task.isDone);
-  //     return task;
-  //   }).toList();
-  //   emit(state.copyWith(tasks: updatedTasks));
-  // }
 
   void toggleSample() {
     emit(state.copyWith(sampleGiven: !state.sampleGiven));
@@ -75,7 +76,7 @@ class ActiveVisitCubit extends Cubit<ActiveVisitState> {
     emit(state.copyWith(notes: value));
   }
 
-  // ── End Visit Logic (Clean Architecture Way) ─────────────────
+  // ── END VISIT ──
   Future<void> endVisit() async {
     emit(state.copyWith(isEndingVisit: true));
 
@@ -83,18 +84,17 @@ class ActiveVisitCubit extends Cubit<ActiveVisitState> {
 
     result.when(
       success: (_) {
-        emit(state.copyWith(
-          isEndingVisit: false,
-          visitEndedSuccessfully: true,
-        ));
+        emit(state.copyWith(isEndingVisit: false, visitEndedSuccessfully: true));
       },
-      failure: (AppFailure f) {
-        emit(state.copyWith(
-          isEndingVisit: false,
-          errorMessage: f.message,
-        ));
+      onFailure: (f) {
+        emit(state.copyWith(isEndingVisit: false));
       },
     );
+  }
+
+  // ── SAVE SESSION ──
+  void saveSession() {
+    _lastActiveTime = DateTime.now();
   }
 
   @override

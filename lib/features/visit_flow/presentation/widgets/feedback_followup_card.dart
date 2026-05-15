@@ -16,11 +16,11 @@ class FeedbackFollowUpCard extends StatelessWidget {
 
         bool isSampleGiven = false;
 
-        if (state is VisitFeedbackInitial) {
+        if (state is VisitFeedbackState) {
           isSampleGiven = state.sampleGiven;
         } else {
           // هنا بنعتمد على المتغير المخزن داخل الكيوبت نفسه كمرجع ثابت
-          isSampleGiven = cubit.sampleGiven;
+          isSampleGiven = state.sampleGiven;
         }
 
         return Container(

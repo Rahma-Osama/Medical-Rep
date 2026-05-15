@@ -5,16 +5,16 @@ import 'package:medical_rep/core/styles/app_text_style.dart';
 import 'package:medical_rep/features/visit_flow/presentation/cubits/active_visit/active_visit_cubit.dart';
 import 'package:medical_rep/features/visit_flow/presentation/cubits/active_visit/active_visit_state.dart';
 
-
 class VisitTimerWidget extends StatelessWidget {
   const VisitTimerWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ActiveVisitCubit, ActiveVisitState>(
-      buildWhen: (prev, curr) => prev.elapsed != curr.elapsed,
+      buildWhen: (prev, curr) => prev.tick != curr.tick,
       builder: (context, state) {
         final cubit = context.read<ActiveVisitCubit>();
+
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 24),
@@ -26,9 +26,12 @@ class VisitTimerWidget extends StatelessWidget {
             children: [
               Text(
                 'Visit Duration',
-                style: AppTextStyle.hint.copyWith(color: AppColors.whiteColor.withOpacity(0.6)),
+                style: AppTextStyle.hint.copyWith(
+                  color: AppColors.whiteColor.withOpacity(0.6),
+                ),
               ),
               const SizedBox(height: 8),
+
               Text(
                 cubit.formattedTime,
                 style: AppTextStyle.appName.copyWith(
@@ -37,10 +40,14 @@ class VisitTimerWidget extends StatelessWidget {
                   letterSpacing: 4,
                 ),
               ),
+
               const SizedBox(height: 4),
+
               Text(
                 'Started at ${_formatStartTime(cubit.visit.startTime)}',
-                style: AppTextStyle.hint.copyWith(color: AppColors.whiteColor.withOpacity(0.5)),
+                style: AppTextStyle.hint.copyWith(
+                  color: AppColors.whiteColor.withOpacity(0.5),
+                ),
               ),
             ],
           ),

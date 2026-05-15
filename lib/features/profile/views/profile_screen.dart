@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hive/hive.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/styles/app_text_style.dart';
 import 'package:medical_rep/features/Auth/views/LoginView.dart';
@@ -56,35 +55,35 @@ class _ProfileView extends StatelessWidget {
     return BlocBuilder<ProfileCubit, ProfileState>(
       builder: (context, state) {
         return switch (state) {
-          ProfileLoading() => Scaffold(
-              backgroundColor: AppColors.backgroundColor,
-              body: const Center(child: CircularProgressIndicator()),
-            ),
-          ProfileError(:final message) => Scaffold(
-              backgroundColor: AppColors.backgroundColor,
-              body: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(message, textAlign: TextAlign.center),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: () => context.read<ProfileCubit>().load(),
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ProfileLoaded(:final user) => _ProfileScrollBody(
-              user: user,
-              showBackButton: showBackButton,
-              onSignOut: onSignOut,
-            ),
-        };
+        ProfileLoading() => Scaffold(
+          backgroundColor: AppColors.backgroundColor,
+          body: const Center(child: CircularProgressIndicator()),
+        ),
+        ProfileError(:final message) => Scaffold(
+        backgroundColor: AppColors.backgroundColor,
+        body: SafeArea(
+        child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+        Text(message, textAlign: TextAlign.center),
+        const SizedBox(height: 16),
+        FilledButton(
+        onPressed: () => context.read<ProfileCubit>().load(),
+        child: const Text('Retry'),
+        ),
+        ],
+        ),
+        ),
+        ),
+        ),
+        ProfileLoaded(:final user) => _ProfileScrollBody(
+        user: user,
+        showBackButton: showBackButton,
+        onSignOut: onSignOut,
+        ),
+      };
       },
     );
   }
@@ -149,41 +148,41 @@ class _ProfileScrollBody extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 28),
-       Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 20),
-  child: SizedBox(
-    width: double.infinity,
-    height: 52,
-    child: OutlinedButton(
-      // التعديل هنا: نداء دالة تسجيل الخروج
-      onPressed: () => _handleSignOut(context), 
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.errorColor,
-        side: BorderSide(color: AppColors.errorColor.withOpacity(0.6)),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-      child: Text(
-        'Sign out',
-        style: AppTextStyle.body.copyWith(
-          color: AppColors.errorColor,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    ),
-  ),
-),
-  
-            
-           
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: OutlinedButton(
+                  // التعديل هنا: نداء دالة تسجيل الخروج
+                  onPressed: () => _handleSignOut(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.errorColor,
+                    side: BorderSide(color: AppColors.errorColor.withOpacity(0.6)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    'Log out',
+                    style: AppTextStyle.body.copyWith(
+                      color: AppColors.errorColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+
+
             const SizedBox(height: 8),
             Center(
               child: Text(
                 'MedRep Field Intelligence',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.grayColor,
-                    ),
+                  color: AppColors.grayColor,
+                ),
               ),
             ),
             const SizedBox(height: 32),
@@ -195,20 +194,20 @@ class _ProfileScrollBody extends StatelessWidget {
 }
 Future<void> _handleSignOut(BuildContext context) async {
   try {
-    // 1. تسجيل الخروج من سوبابيز
     await Supabase.instance.client.auth.signOut();
 
-    // 2. التوجيه لصفحة اللوج إن ومسح كل الصفحات السابقة
     if (context.mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (route) => false, // ده بيمسح كل الـ history بتاع الصفحات
+            (route) => false,
       );
     }
   } catch (e) {
-    // إظهار رسالة خطأ لو حصل مشكلة
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Error signing out: $e')),
     );
   }
 }
+
+
+

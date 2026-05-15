@@ -1,98 +1,82 @@
-import 'package:bloc/bloc.dart';
-import 'package:flutter/material.dart';
-import 'package:medical_rep/core/utils/app_failure.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:medical_rep/core/error/app_failure.dart';
+import 'package:medical_rep/core/error/result.dart'; // تأكدي من صحة المسار
 import 'package:medical_rep/features/visit_flow/data/models/visit_data_models.dart';
 import 'package:medical_rep/features/visit_flow/domain/entities/visit_feedback.dart';
-import 'package:medical_rep/features/visit_flow/domain/usecases/visit_usecases.dart';
+import 'package:medical_rep/features/visit_flow/domain/usecases/visit_usecases.dart'; // تأكدي من المسار الموحد للـ usecases
 import 'package:medical_rep/features/visit_flow/presentation/cubits/visit_feedback/visit_feedback_states.dart';
 
 class VisitFeedbackCubit extends Cubit<VisitFeedbackState> {
   final SubmitVisitFeedbackUseCase _submitVisitFeedback;
   final String visitId;
-
-   DoctorInterestLevel interestLevel = DoctorInterestLevel.medium;
-  bool sampleGiven;
-  bool followUpRequired = false;
-  List<String> attachmentPaths = [];
-
-  final notesController = TextEditingController();
-  final formKey = GlobalKey<FormState>();
+  final String targetProduct;
+  final String doctorName;
+  final String clinicName;
 
   VisitFeedbackCubit({
     required SubmitVisitFeedbackUseCase submitVisitFeedback,
     required this.visitId,
     required bool prefillSampleGiven,
+    required this.doctorName,
+    required this.clinicName,
+    required this.targetProduct
   })  : _submitVisitFeedback = submitVisitFeedback,
-        sampleGiven = prefillSampleGiven,
-        super(VisitFeedbackInitial(sampleGiven: prefillSampleGiven));
+        super(VisitFeedbackState(sampleGiven: prefillSampleGiven));
 
-  // 2. تحديث الحالات (States) مع الحفاظ على قيم الـ Fields
   void setInterestLevel(DoctorInterestLevel level) {
-    interestLevel = level;
-    _updateInitialState();
+    emit(state.copyWith(interestLevel: level));
   }
 
   void toggleSample() {
-    sampleGiven = !sampleGiven;
-    _updateInitialState();
+    emit(state.copyWith(sampleGiven: !state.sampleGiven));
   }
 
   void toggleFollowUp() {
-    followUpRequired = !followUpRequired;
-    _updateInitialState();
+    emit(state.copyWith(followUpRequired: !state.followUpRequired));
   }
 
   void addAttachment(String path) {
-    attachmentPaths = List<String>.from(attachmentPaths)..add(path);
-    _updateInitialState();
+    final newList = List<String>.from(state.attachmentPaths)..add(path);
+    emit(state.copyWith(attachmentPaths: newList));
   }
 
   void removeAttachment(int index) {
-    attachmentPaths = List<String>.from(attachmentPaths)..removeAt(index);
-    _updateInitialState();
+    final newList = List<String>.from(state.attachmentPaths)..removeAt(index);
+    emit(state.copyWith(attachmentPaths: newList));
   }
 
-  // ميثود مساعدة لتحديث الـ State ببيانات الـ Fields الحالية
-  void _updateInitialState() {
-    emit(VisitFeedbackInitial(
-      interestLevel: interestLevel,
-      sampleGiven: sampleGiven,
-      followUpRequired: followUpRequired,
-      attachmentPaths: attachmentPaths,
-    ));
-  }
-
-  Future<void> submitFeedback() async {
-    if (!formKey.currentState!.validate()) return;
-
-    // بنخزن البيانات الحالية قبل الانتقال لحالة الـ Loading
-    emit(VisitFeedbackLoading());
+  Future<void> submitFeedback(String notes) async {
+    emit(state.copyWith(isLoading: true, errorMessage: null));
 
     final feedback = VisitFeedbackModel(
       visitId: visitId,
-      interestLevel: interestLevel,
-      sampleGiven: sampleGiven,
-      followUpRequired: followUpRequired,
-      notes: notesController.text.trim(),
-      attachmentPaths: attachmentPaths,
-      submittedAt: DateTime.now(),
+      interestLevel: state.interestLevel,
+      sampleGiven: state.sampleGiven,
+      followUpRequired: state.followUpRequired,
+      notes: notes.trim(),
+      submittedAt: DateTime.now(), targetProduct: targetProduct,
     );
 
-    final result = await _submitVisitFeedback(feedback);
+    final result = await _submitVisitFeedback(
+      feedback,
+      doctorName: doctorName,
+      clinicName: clinicName,
+      targetProduct: targetProduct
+    );
 
     result.when(
-      success: (_) => emit(VisitFeedbackSuccess()),
-      failure: (AppFailure f) => emit(VisitFeedbackFailure(_toUiMessage(f))),
+      success: (_) => emit(state.copyWith(isSuccess: true, isLoading: false)),
+      onFailure: (f) {
+        if (f is NoInternetFailure) {
+          emit(state.copyWith(isSuccess: true, isLoading: false));
+        } else {
+          emit(state.copyWith(
+            isLoading: false,
+            errorMessage: _toUiMessage(f),
+          ));
+        }},
     );
   }
 
-  String _toUiMessage(AppFailure failure) {
-    return '${failure.title}: ${failure.message}';
-  }
-
-  @override
-  Future<void> close() {
-    notesController.dispose();
-    return super.close();
-  }
+  String _toUiMessage(AppFailure failure) => '${failure.title}: ${failure.message}';
 }

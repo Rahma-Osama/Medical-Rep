@@ -1,5 +1,5 @@
 import 'package:hive/hive.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // سوبا بيز
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:medical_rep/features/weekly_planning/data/data%20source/weekly_plan_local_data_source.dart';
 import 'package:medical_rep/features/weekly_planning/data/data%20source/weekly_plan_remote_data_source.dart';
 import 'package:medical_rep/features/weekly_planning/data/model/visit_model.dart';
@@ -46,7 +46,6 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
         .eq('area_name', areaName);
 
     final List data = response as List;
-    // استخراج أسماء الدكاترة (name)
     return data.map((e) => e['name'] as String).toList();
   }
 
@@ -85,7 +84,6 @@ Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
           'status': 'pending',
         });
       }
-    }
 
   
     if (allVisitsToUpload.isNotEmpty) {
@@ -101,25 +99,24 @@ Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
     print(" Repository Error: $e");
     rethrow;
   }
-}
 
   @override
   Map<int, List<VisitEntity>> getLocalPlan() {
     final cachedModelsMap = localDS.getCachedVisits();
     return cachedModelsMap.map((key, modelsList) => MapEntry(
-          key,
-          modelsList
-              .map((model) => VisitEntity(
-                    brick: model.brick,
-                    doctor: model.doctor,
-                    shift: model.shift,
-                    type: model.type,
-                    notes: model.notes,
-                    date: model.date,
-                    dayName: model.dayName,
-                  ))
-              .toList(),
-        ));
+      key,
+      modelsList
+          .map((model) => VisitEntity(
+        brick: model.brick,
+        doctor: model.doctor,
+        shift: model.shift,
+        type: model.type,
+        notes: model.notes,
+        date: model.date,
+        dayName: model.dayName,
+      ))
+          .toList(),
+    ));
   }
 
   @override
@@ -135,6 +132,12 @@ Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
     } else {
       throw Exception("لا توجد بيانات محفوظة لرفعها");
     }
+  }
+
+  // 🔹 الميثود الجديدة اللي الشاشة محتاجاها
+  @override
+  Stream<List<VisitModel>> getVisitsWithCache() {
+    return remoteDS.getVisitsWithCache();
   }
 
   @override
@@ -158,8 +161,8 @@ Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
 
       for (var visit in cachedVisits) {
         final match = dataFromServer.firstWhere(
-          (serverRow) =>
-              serverRow['visit_date'] == visit.date &&
+              (serverRow) =>
+          serverRow['visit_date'] == visit.date &&
               serverRow['doctor_name'] == visit.doctor,
           orElse: () => null,
         );
@@ -174,7 +177,6 @@ Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
       if (isAnyVisitUpdated) {
         await box.clear();
         await box.addAll(cachedVisits);
-        print("🔄 تم تحديث حالات الخطة في الكاش الموحد بنجاح");
       }
     } catch (e) {
       print(" خطأ أثناء المزامنة: $e");

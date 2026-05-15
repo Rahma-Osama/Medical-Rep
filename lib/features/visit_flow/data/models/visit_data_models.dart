@@ -13,10 +13,15 @@ class VisitModel extends VisitEntity {
     required super.shift,
     required super.targetProduct,
     required super.startTime,
+    this.lastSeenTime,
+    this.isActive = true,
   });
 
+  final DateTime? lastSeenTime;
+  final bool isActive;
+
   factory VisitModel.fromJson(Map<String, dynamic> json) => VisitModel(
-    visitId: json['visit_id'] as String,
+    visitId: json['id'] as String,
     doctorName: json['doctor_name'] as String,
     specialty: json['specialty'] as String,
     clinicName: json['clinic_name'] as String,
@@ -24,10 +29,14 @@ class VisitModel extends VisitEntity {
     shift: json['shift'] as String,
     targetProduct: json['target_product'] as String,
     startTime: DateTime.parse(json['start_time'] as String),
+    lastSeenTime: json['last_seen_time'] != null
+        ? DateTime.parse(json['last_seen_time'])
+        : null,
+    isActive: json['is_active'] ?? true,
   );
 
   Map<String, dynamic> toJson() => {
-    'visit_id': visitId,
+    'id': visitId,
     'doctor_name': doctorName,
     'specialty': specialty,
     'clinic_name': clinicName,
@@ -35,18 +44,10 @@ class VisitModel extends VisitEntity {
     'shift': shift,
     'target_product': targetProduct,
     'start_time': startTime.toIso8601String(),
+    'last_seen_time': lastSeenTime?.toIso8601String(),
+    'is_active': isActive,
   };
-
-  // Default tasks are a DATA concern (hardcoded seed data).
-  // Domain entity is clean — this stays here.
-  static List<VisitTaskModel> get defaultTasks => [
-    VisitTaskModel(id: '1', title: 'Product Presentation'),
-    VisitTaskModel(id: '2', title: 'Answer Doctor Questions'),
-    VisitTaskModel(id: '3', title: 'Discuss Clinical Data'),
-    VisitTaskModel(id: '4', title: 'Leave Marketing Material'),
-  ];
 }
-
 // ── VisitTaskModel ────────────────────────────────────────────
 class VisitTaskModel extends VisitTaskEntity {
   const VisitTaskModel({
@@ -80,8 +81,8 @@ class VisitFeedbackModel extends VisitFeedbackEntity {
     required super.sampleGiven,
     required super.followUpRequired,
     required super.notes,
-    required super.attachmentPaths,
     required super.submittedAt,
+    required super.targetProduct,
   });
 
   factory VisitFeedbackModel.fromEntity(VisitFeedbackEntity entity) =>
@@ -91,17 +92,15 @@ class VisitFeedbackModel extends VisitFeedbackEntity {
         sampleGiven: entity.sampleGiven,
         followUpRequired: entity.followUpRequired,
         notes: entity.notes,
-        attachmentPaths: entity.attachmentPaths,
-        submittedAt: entity.submittedAt,
+        submittedAt: entity.submittedAt, targetProduct: entity.targetProduct,
       );
 
   Map<String, dynamic> toJson() => {
-    'visit_id': visitId,
+    'id': visitId,
     'interest_level': interestLevel.name,
     'sample_given': sampleGiven,
     'follow_up_required': followUpRequired,
     'notes': notes,
-    'attachment_paths': attachmentPaths,
     'submitted_at': submittedAt.toIso8601String(),
   };
 }
