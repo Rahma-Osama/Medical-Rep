@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:medical_rep/core/utils/work_week_dates.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // سوبا بيز
 import 'package:medical_rep/features/weekly_planning/data/data%20source/weekly_plan_local_data_source.dart';
 import 'package:medical_rep/features/weekly_planning/data/data%20source/weekly_plan_remote_data_source.dart';
@@ -65,15 +66,22 @@ Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
     final List<Map<String, dynamic>> allVisitsToUpload = [];
 
     for (var entry in weeklyData.entries) {
-      final List<VisitModel> modelsList = entry.value.map((entity) => VisitModel(
-        brick: entity.brick,
-        doctor: entity.doctor,
-        shift: entity.shift,
-        type: entity.type,
-        date: entity.date,
-        dayName: entity.dayName,
-        status: 'pending',
-      )).toList();
+      final dayName = WorkWeekDates.planDayNames[entry.key];
+      final List<VisitModel> modelsList = entry.value.map((entity) {
+        final visitDate = WorkWeekDates.normalizedVisitDate(
+          dayName: entity.dayName ?? dayName,
+          visitDate: entity.date,
+        );
+        return VisitModel(
+          brick: entity.brick,
+          doctor: entity.doctor,
+          shift: entity.shift,
+          type: entity.type,
+          date: visitDate,
+          dayName: entity.dayName ?? dayName,
+          status: 'pending',
+        );
+      }).toList();
       
       // 1. حفظ محلي في Hive
       await localDS.saveDayVisitsLocally(entry.key, modelsList);
@@ -93,13 +101,30 @@ Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
       }
     }
 
-    // 3. 🔹 الحل السحري: استخدام upsert ومنع التكرار
+    // 3. Remove stale / mis-dated pending rows before upload.
+    final today = WorkWeekDates.isoDate(DateTime.now());
+    await Supabase.instance.client
+        .from('visits')
+        .delete()
+        .eq('user_id', userId)
+        .eq('visit_date', today)
+        .eq('status', 'pending')
+        .inFilter('day_name', WorkWeekDates.planDayNames);
+
+    final weekRange = WorkWeekDates.plannedWeekRange();
+    await Supabase.instance.client
+        .from('visits')
+        .delete()
+        .eq('user_id', userId)
+        .gte('visit_date', weekRange.$1)
+        .lte('visit_date', weekRange.$2)
+        .eq('status', 'pending');
+
+    // 4. Upsert the corrected plan.
     if (allVisitsToUpload.isNotEmpty) {
-      await Supabase.instance.client
-          .from('visits')
-          .upsert(
-            allVisitsToUpload, 
-            onConflict: 'user_id, visit_date, doctor_name' // يمنع تكرار نفس الدكتور لنفس اليوزر في نفس اليوم
+      await Supabase.instance.client.from('visits').upsert(
+            allVisitsToUpload,
+            onConflict: 'user_id, visit_date, doctor_name',
           );
       print("✅ Plan synced with Supabase (Upserted)");
     }
@@ -112,20 +137,28 @@ Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
   @override
   Map<int, List<VisitEntity>> getLocalPlan() {
     final cachedModelsMap = localDS.getCachedVisits();
-    return cachedModelsMap.map((key, modelsList) => MapEntry(
-          key,
-          modelsList
-              .map((model) => VisitEntity(
-                    brick: model.brick,
-                    doctor: model.doctor,
-                    shift: model.shift,
-                    type: model.type,
-                    notes: model.notes,
-                    date: model.date,
-                    dayName: model.dayName,
-                  ))
-              .toList(),
-        ));
+    return cachedModelsMap.map((key, modelsList) {
+      final dayName = WorkWeekDates.planDayNames[key];
+      return MapEntry(
+        key,
+        modelsList
+            .map(
+              (model) => VisitEntity(
+                brick: model.brick,
+                doctor: model.doctor,
+                shift: model.shift,
+                type: model.type,
+                notes: model.notes,
+                date: WorkWeekDates.normalizedVisitDate(
+                  dayName: model.dayName ?? dayName,
+                  visitDate: model.date,
+                ),
+                dayName: model.dayName ?? dayName,
+              ),
+            )
+            .toList(),
+      );
+    });
   }
 
   @override

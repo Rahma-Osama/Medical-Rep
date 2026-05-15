@@ -8,6 +8,7 @@ class ProfileUser {
     required this.regionLabel,
     this.phone,
     this.territory,
+    this.avatarUrl,
   });
 
   final String fullName;
@@ -17,6 +18,7 @@ class ProfileUser {
   final String regionLabel;
   final String? phone;
   final String? territory;
+  final String? avatarUrl;
 
   ProfileUser copyWith({
     String? fullName,
@@ -26,6 +28,7 @@ class ProfileUser {
     String? regionLabel,
     String? phone,
     String? territory,
+    String? avatarUrl,
   }) {
     return ProfileUser(
       fullName: fullName ?? this.fullName,
@@ -35,6 +38,7 @@ class ProfileUser {
       regionLabel: regionLabel ?? this.regionLabel,
       phone: phone ?? this.phone,
       territory: territory ?? this.territory,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
     );
   }
 }

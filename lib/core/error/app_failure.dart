@@ -135,9 +135,9 @@ final class PermissionFailure extends AppFailure {
   }) : super(requiresReAuth: false);
 }
 final class GeneralFailure extends AppFailure {
-const GeneralFailure({String? title, required String message})
-    : super(
-title: title ?? 'Error',
-message: message,
-);
+  const GeneralFailure({String? title, required String message})
+      : super(
+          title: title ?? 'Error',
+          message: message,
+        );
 }

@@ -44,7 +44,7 @@ class VisitFeedbackCubit extends Cubit<VisitFeedbackState> {
   }
 
   Future<void> submitFeedback(String notes) async {
-    emit(state.copyWith(isLoading: true, errorMessage: null));
+    emit(state.copyWith(isLoading: true, clearFailure: true));
 
     final feedback = VisitFeedbackModel(
       visitId: visitId,
@@ -70,11 +70,9 @@ class VisitFeedbackCubit extends Cubit<VisitFeedbackState> {
         } else {
           emit(state.copyWith(
             isLoading: false,
-            errorMessage: _toUiMessage(f),
+            failure: f,
           ));
         }},
     );
   }
-
-  String _toUiMessage(AppFailure failure) => '${failure.title}: ${failure.message}';
 }

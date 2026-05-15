@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
+import 'package:medical_rep/core/utils/work_week_dates.dart';
 import 'package:medical_rep/features/visit_flow/data/models/visit_data_models.dart';
 import '../domain/entities/visit_entity.dart';
 import '../domain/usecases/save_visit_usecase.dart';
@@ -47,7 +48,7 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
       final cachedPlan = saveVisitUseCase.repository.getLocalPlan();
       if (cachedPlan.isNotEmpty) {
         _weeklyData.clear();
-        _weeklyData.addAll(cachedPlan);
+        _weeklyData.addAll(_normalizeCachedPlanDates(cachedPlan));
         print("✅ Cached Plan Loaded: ${_weeklyData.length} days found.");
       }
 
@@ -105,15 +106,38 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
     _emitUpdatedState();
   }
 
-  String _getDateForDay(int index) {
-    DateTime now = DateTime.now();
-    DateTime targetDate = now.add(Duration(days: index)); 
-    return "${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}";
+  String _getDateForDay(int index) =>
+      WorkWeekDates.isoDateForPlanDay(index);
+
+  Map<int, List<VisitEntity>> _normalizeCachedPlanDates(
+    Map<int, List<VisitEntity>> plan,
+  ) {
+    return plan.map((dayIndex, visits) {
+      return MapEntry(
+        dayIndex,
+        visits
+            .map(
+              (v) => v.copyWith(
+                date: WorkWeekDates.normalizedVisitDate(
+                  dayName: v.dayName ?? weekDays[dayIndex],
+                  visitDate: v.date,
+                ),
+                dayName: v.dayName ?? weekDays[dayIndex],
+              ),
+            )
+            .toList(),
+      );
+    });
   }
 
   void selectDay(int index) {
     selectedDayIndex = index;
-    _tempVisit = VisitEntity(shift: "AM", type: "Single");
+    _tempVisit = VisitEntity(
+      shift: "AM",
+      type: "Single",
+      date: _getDateForDay(index),
+      dayName: weekDays[index],
+    );
     _emitUpdatedState();
   }
 
@@ -131,8 +155,17 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
       return;
     }
 
-    _weeklyData[selectedDayIndex]!.add(_tempVisit);
-    _tempVisit = VisitEntity(shift: "AM", type: "Single", brick: null, doctor: null); 
+    final visitToAdd = _tempVisit.copyWith(
+      date: _getDateForDay(selectedDayIndex),
+      dayName: weekDays[selectedDayIndex],
+    );
+    _weeklyData[selectedDayIndex]!.add(visitToAdd);
+    _tempVisit = VisitEntity(
+      shift: "AM",
+      type: "Single",
+      date: _getDateForDay(selectedDayIndex),
+      dayName: weekDays[selectedDayIndex],
+    ); 
     _emitUpdatedState();
   }
 

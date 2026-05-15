@@ -1,3 +1,4 @@
+import 'package:medical_rep/core/error/app_failure.dart';
 import 'package:medical_rep/features/profile/models/profile_user.dart';
 
 sealed class ProfileState {}
@@ -10,8 +11,14 @@ final class ProfileLoaded extends ProfileState {
   ProfileLoaded(this.user);
 }
 
-final class ProfileError extends ProfileState {
-  final String message;
+final class ProfilePhotoUploading extends ProfileState {
+  final ProfileUser user;
 
-  ProfileError(this.message);
+  ProfilePhotoUploading(this.user);
+}
+
+final class ProfileError extends ProfileState {
+  final AppFailure failure;
+
+  ProfileError(this.failure);
 }

@@ -64,7 +64,7 @@ AppFailure mapExceptionToFailure(Object error) {
     };
   }
 
-  // Unknown/untyped errors → keep generic.
-  return const ServerFailure();
+  // Unknown/untyped errors → preserve message when possible.
+  return GeneralFailure(message: error.toString());
 }
 

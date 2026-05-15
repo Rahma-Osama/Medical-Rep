@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:medical_rep/core/services/services.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
+import 'package:medical_rep/features/doctor_and_pharmacy/presentation/cubit/medical_cubit.dart';
+import 'package:medical_rep/features/doctor_and_pharmacy/presentation/views/entities_list_page.dart';
 import 'package:medical_rep/features/home/data/home_dashboard_repository.dart';
 import 'package:medical_rep/features/home/data/models/home_dashboard_snapshot.dart';
 import 'package:medical_rep/features/home/views/widgets/home_bottom_navigation_bar.dart';
@@ -10,8 +13,10 @@ import 'package:medical_rep/features/home/views/widgets/home_recent_visits_secti
 import 'package:medical_rep/features/home/views/widgets/home_services_section.dart';
 import 'package:medical_rep/features/home/views/widgets/home_stats_row.dart';
 import 'package:medical_rep/features/profile/views/profile_screen.dart';
+import 'package:medical_rep/features/visit_flow/presentation/pages/pending_visits_screen.dart';
 import 'package:medical_rep/features/weekly_planning/views/create_weekly_plan_view.dart';
 import 'package:medical_rep/features/weekly_planning/views/weekly_plan_status_view.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,8 +26,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const Set<String> _recentVisitStatuses = {'done', 'completed'};
+  static const int _recentVisitFetchCap = 50;
+
   int _navIndex = 0;
   HomeDashboardSnapshot? _dashboard;
+  List<HomeRecentVisitItem> _recentCompletedVisits = [];
   bool _loadingDashboard = true;
   String? _dashboardError;
 
@@ -39,9 +48,11 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     try {
       final data = await getIt<HomeDashboardRepository>().loadDashboard();
+      final recent = await _fetchRecentDoneOrCompletedVisits();
       if (!mounted) return;
       setState(() {
         _dashboard = data;
+        _recentCompletedVisits = recent;
         _loadingDashboard = false;
       });
     } catch (e) {
@@ -60,6 +71,25 @@ class _HomeScreenState extends State<HomeScreen> {
     return 'Good Evening';
   }
 
+  void _openDoctorsList() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => BlocProvider<MedicalCubit>(
+          create: (_) => getIt<MedicalCubit>(),
+          child: const EntitiesListPage(),
+        ),
+      ),
+    );
+  }
+
+  void _openPendingVisitsScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const PendingVisitsScreen(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.paddingOf(context).top;
@@ -70,21 +100,9 @@ class _HomeScreenState extends State<HomeScreen> {
       body: IndexedStack(
         index: _navIndex,
         children: [
-          // Tab 0: Home Page
           _buildHomeScroll(context, topInset, stackHeight),
-
           const WeeklyPlanningView(),
-
-   
           const CreatePlanScreen(),
-
-          // Tab 3: Reports
-          _placeholderTab('Reports'),
-
-          // Tab 4: Profile Page
-          const ProfileScreen(
-            showBackButton: false,
-          ),
         ],
       ),
       bottomNavigationBar: HomeBottomNavigationBar(
@@ -125,7 +143,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     greeting: _greeting(),
                     userName: userName,
                     roleLine: roleLine,
-                    notificationCount: 0,
                   ),
                   Positioned(
                     left: 20,
@@ -134,12 +151,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: HomeProfileProgressCard(
                       email: email,
                       repId: repId,
-                      onProfile: () {
-                        Navigator.of(context).push(
+                      avatarUrl: profile?.avatarUrl,
+                      onProfile: () async {
+                        await Navigator.of(context).push(
                           MaterialPageRoute<void>(
                             builder: (_) => const ProfileScreen(),
                           ),
                         );
+                        if (mounted) {
+                          _loadDashboard();
+                        }
                       },
                       onQrTap: () {},
                       onSummaryTap: () {
@@ -176,29 +197,25 @@ class _HomeScreenState extends State<HomeScreen> {
                     )
                   else
                     HomeStatsRow(
-                      visitsToday: _dashboard?.visitsDoneToday ?? 0,
-                      visitsPlanned: _dashboard?.visitsPlannedToday ?? 0,
+                      visitsPlannedToday: _dashboard?.visitsPlannedToday ?? 0,
                       pendingDrafts: _dashboard?.pendingDrafts ?? 0,
-                      weekVisitsDone: _dashboard?.weekVisitsDone ?? 0,
-                      onDraftsTap: () => setState(() => _navIndex = 1),
+                      weekVisitsPlanned: _dashboard?.weekVisitsPlanned ?? 0,
+                      onDraftsTap: _openPendingVisitsScreen,
                     ),
                   const SizedBox(height: 24),
                   HomeServicesSection(
-                    onViewAll: () {},
-                    onDoctorsList: () {},
-                    onPharmacyList: () {},
+                    onDoctorsList: _openDoctorsList,
                     onWeeklyPlanning: () {
-                      // عند الضغط على Weekly Planning من الخدمات يفتح صفحة الإنشاء
                       setState(() => _navIndex = 2);
                     },
-                    onDrafts: () => setState(() => _navIndex = 1),
+                    onDrafts: _openPendingVisitsScreen,
                   ),
                   const SizedBox(height: 28),
                   HomeRecentVisitsSection(
-                    items: _dashboard?.recentVisits.isNotEmpty == true
-                        ? _dashboard!.recentVisits
+                    items: _recentCompletedVisits.isNotEmpty
+                        ? _recentCompletedVisits
                         : _emptyRecentPlaceholder,
-                    onSeeAll: () {},
+                    onSeeAll: () => setState(() => _navIndex = 1),
                   ),
                 ],
               ),
@@ -218,12 +235,76 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
-  Widget _placeholderTab(String title) {
-    return Center(
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleMedium,
-      ),
-    );
+  Future<List<HomeRecentVisitItem>> _fetchRecentDoneOrCompletedVisits() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return [];
+
+    try {
+      final raw = await Supabase.instance.client
+          .from('visits')
+          .select(
+            'doctor_name, visit_date, shift, status, visit_type',
+          )
+          .eq('user_id', user.id)
+          .order('visit_date', ascending: false)
+          .limit(_recentVisitFetchCap);
+
+      return _mapRowsToRecentItemsLimited(
+        raw as List<dynamic>,
+        allowedStatuses: _recentVisitStatuses,
+        maxItems: 5,
+      );
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static List<HomeRecentVisitItem> _mapRowsToRecentItemsLimited(
+    List<dynamic> rows, {
+    required Set<String> allowedStatuses,
+    required int maxItems,
+  }) {
+    final out = <HomeRecentVisitItem>[];
+    for (final raw in rows) {
+      if (out.length >= maxItems) break;
+      if (raw is! Map) continue;
+      final row = Map<String, dynamic>.from(raw);
+      final status = (row['status'] ?? '').toString().toLowerCase();
+      if (!allowedStatuses.contains(status)) continue;
+
+      final doctor = row['doctor_name']?.toString() ?? 'Visit';
+      final date = row['visit_date']?.toString() ?? '';
+      final shift = row['shift']?.toString() ?? '';
+      final type = row['visit_type']?.toString() ?? '';
+      final style = _recentVisitStatusStyle(status);
+
+      out.add(
+        HomeRecentVisitItem(
+          leadingIcon: Icons.local_hospital_outlined,
+          title: doctor,
+          subtitle: [type, shift, date].where((s) => s.isNotEmpty).join(' · '),
+          statusLabel: style.$1,
+          statusColor: style.$2,
+          statusBackgroundColor: style.$3,
+        ),
+      );
+    }
+    return out;
+  }
+
+  static (String, Color, Color) _recentVisitStatusStyle(String status) {
+    switch (status) {
+      case 'approved':
+      case 'completed':
+      case 'done':
+      case 'visited':
+        return ('Done', const Color(0xFF2E7D32), const Color(0xFFE8F5E9));
+      case 'rejected':
+        return ('Rejected', const Color(0xFFC62828), const Color(0xFFFFEBEE));
+      case 'draft':
+        return ('Draft', const Color(0xFF1565C0), const Color(0xFFE3F2FD));
+      default:
+        return ('Pending', const Color(0xFFEF6C00), const Color(0xFFFFF3E0));
+    }
   }
 }

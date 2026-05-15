@@ -8,6 +8,7 @@ import 'package:medical_rep/features/visit_flow/data/models/visit_data_models.da
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/styles/app_text_style.dart';
 import 'package:medical_rep/core/widgets/custom_app_bar.dart';
+import 'package:medical_rep/core/error/failure_ui_extension.dart';
 import 'package:medical_rep/core/widgets/custom_snackbar_widget.dart';
 import 'package:medical_rep/features/visit_flow/data/repoetries/visit_repo_impl.dart';
 import 'package:medical_rep/features/visit_flow/domain/usecases/visit_usecases.dart';
@@ -64,18 +65,37 @@ class _ActiveVisitView extends StatelessWidget {
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F7FA),
         body: BlocConsumer<ActiveVisitCubit, ActiveVisitState>(
-          listenWhen: (prev, curr) => prev.isEndingVisit != curr.isEndingVisit,
+          listenWhen: (prev, curr) =>
+              prev.failure != curr.failure ||
+              (!prev.visitEndedSuccessfully && curr.visitEndedSuccessfully),
           listener: (context, state) {
-            if (!state.isEndingVisit) {
+            if (state.visitEndedSuccessfully) {
               final cubit = context.read<ActiveVisitCubit>();
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
                   builder: (_) => VisitFeedbackScreen(
                     visitId: visit.visitId,
-                    prefillSampleGiven: cubit.state.sampleGiven, doctorName:visit.doctorName, clinicName: visit.clinicName,
+                    prefillSampleGiven: cubit.state.sampleGiven,
+                    doctorName: visit.doctorName,
+                    clinicName: visit.clinicName,
                   ),
                 ),
+              );
+              return;
+            }
+            final failure = state.failure;
+            if (failure != null) {
+              final cubit = context.read<ActiveVisitCubit>();
+              failure.showFailureDialog(
+                context,
+                onRetry: () {
+                  if (state.locationStatus == LocationStatus.failed) {
+                    cubit.verifyLocation();
+                  } else {
+                    cubit.endVisit();
+                  }
+                },
               );
             }
           },

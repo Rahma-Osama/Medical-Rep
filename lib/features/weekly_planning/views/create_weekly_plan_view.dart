@@ -19,8 +19,8 @@ class CreatePlanScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<WeeklyPlanCubit>(),
+    return BlocProvider<WeeklyPlanCubit>(
+      create: (context) => getIt<WeeklyPlanCubit>(),
       child: const _CreatePlanBody(),
     );
   }
@@ -129,9 +129,9 @@ class _CreatePlanBody extends StatelessWidget {
                       state is WeeklyPlanLoading
                           ? const Center(child: CircularProgressIndicator())
                           : CustomElevatedButton(
-                              text: "Submit Full Plan",
-                              onPressed: !cubit.isPlanComplete ? null : () => cubit.submitPlan(),
-                            ),
+                        text: "Submit Full Plan",
+                        onPressed: !cubit.isPlanComplete ? null : () => cubit.submitPlan(),
+                      ),
                       const SizedBox(height: 50),
                     ],
                   ),

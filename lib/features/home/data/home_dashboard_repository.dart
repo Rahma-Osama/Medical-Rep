@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:medical_rep/core/error/result.dart';
+import 'package:medical_rep/core/utils/work_week_dates.dart';
 import 'package:medical_rep/features/home/data/models/home_dashboard_snapshot.dart';
 import 'package:medical_rep/features/home/views/widgets/home_recent_visits_section.dart';
 import 'package:medical_rep/features/profile/domain/repositories/profile_repository.dart';
@@ -12,9 +12,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///
 /// Semantics:
 /// - **Planned (today)**: rows for today with `status != rejected`.
-/// - **Done (today / week)**: `status` in [approved, completed, done, visited].
-///   Treat `approved` as a completed KPI until you add a dedicated `completed` flag.
-/// - **Drafts**: `status == draft`. Add this status when saving partial plans, or count stays 0.
+/// - **Planned (this week)**: rows from **Saturday through Thursday** (inclusive) in the
+///   current local week with `status != rejected`.
+/// - **Drafts**: `status == draft`.
 abstract class HomeDashboardRepository {
   Future<HomeDashboardSnapshot> loadDashboard({int recentVisitLimit = 5});
 }
@@ -29,30 +29,7 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
   final ProfileRepository _profileRepository;
   final SupabaseClient _client;
 
-  /// Status values that count as "visit done" for dashboard KPIs.
-  static const List<String> _doneStatuses = [
-    'approved',
-    'completed',
-    'done',
-    'visited',
-  ];
-
   static const List<String> _draftStatuses = ['draft'];
-
-  static String _isoDate(DateTime d) {
-    final y = d.year.toString().padLeft(4, '0');
-    final m = d.month.toString().padLeft(2, '0');
-    final day = d.day.toString().padLeft(2, '0');
-    return '$y-$m-$day';
-  }
-
-  /// Monday-based week [start, end] as ISO date strings (local).
-  static (String start, String end) _weekRange(DateTime anchor) {
-    final local = DateTime(anchor.year, anchor.month, anchor.day);
-    final monday = local.subtract(Duration(days: local.weekday - DateTime.monday));
-    final sunday = monday.add(const Duration(days: 6));
-    return (_isoDate(monday), _isoDate(sunday));
-  }
 
   Future<int> _exactCount(
     PostgrestFilterBuilder<dynamic> Function() query,
@@ -68,8 +45,8 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
       throw StateError('HomeDashboardRepository: no signed-in user');
     }
     final uid = user.id;
-    final today = _isoDate(DateTime.now());
-    final week = _weekRange(DateTime.now());
+    final today = WorkWeekDates.isoDate(DateTime.now());
+    final weekPlanned = WorkWeekDates.plannedWeekRange();
 
     final result = await _profileRepository.getCurrentProfile();
 
@@ -79,8 +56,7 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
     );
 
     int plannedToday = 0;
-    int doneToday = 0;
-    int weekDone = 0;
+    int weekPlannedCount = 0;
     int drafts = 0;
     List<HomeRecentVisitItem> recent = [];
 
@@ -94,23 +70,14 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
             .neq('status', 'rejected'),
       );
 
-      doneToday = await _exactCount(
+      weekPlannedCount = await _exactCount(
         () => _client
             .from('visits')
             .select('id')
             .eq('user_id', uid)
-            .eq('visit_date', today)
-            .inFilter('status', _doneStatuses),
-      );
-
-      weekDone = await _exactCount(
-        () => _client
-            .from('visits')
-            .select('id')
-            .eq('user_id', uid)
-            .gte('visit_date', week.$1)
-            .lte('visit_date', week.$2)
-            .inFilter('status', _doneStatuses),
+            .gte('visit_date', weekPlanned.$1)
+            .lte('visit_date', weekPlanned.$2)
+            .neq('status', 'rejected'),
       );
 
       drafts = await _exactCount(
@@ -137,16 +104,20 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
 
     return HomeDashboardSnapshot(
       profile: profile,
-      visitsDoneToday: doneToday,
       visitsPlannedToday: plannedToday,
       pendingDrafts: drafts,
-      weekVisitsDone: weekDone,
+      weekVisitsPlanned: weekPlannedCount,
       recentVisits: recent,
     );
   }
 
   ProfileUser _fallbackProfile(User user) {
     final email = user.email?.trim() ?? '';
+    final meta = user.userMetadata ?? {};
+    final avatarUrl = meta['avatar_url']?.toString() ??
+        meta['avatarUrl']?.toString() ??
+        meta['picture']?.toString();
+
     return ProfileUser(
       fullName: email.isNotEmpty ? email.split('@').first : 'User',
       email: email.isNotEmpty ? email : '—',
@@ -154,6 +125,7 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
       roleTitle: 'Medical representative',
       regionLabel: '—',
       phone: user.phone,
+      avatarUrl: avatarUrl,
     );
   }
 

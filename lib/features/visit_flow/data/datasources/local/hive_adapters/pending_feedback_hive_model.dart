@@ -1,7 +1,5 @@
 import 'package:hive/hive.dart';
 
-part 'pending_feedback_hive_model.g.dart';
-
 @HiveType(typeId: 10)
 class PendingFeedbackHiveModel extends HiveObject {
   @HiveField(0)

@@ -8,6 +8,7 @@ class HomeProfileProgressCard extends StatelessWidget {
     super.key,
     required this.email,
     required this.repId,
+    this.avatarUrl,
     this.onProfile,
     this.onQrTap,
     this.onSummaryTap,
@@ -16,6 +17,7 @@ class HomeProfileProgressCard extends StatelessWidget {
 
   final String email;
   final String repId;
+  final String? avatarUrl;
   final VoidCallback? onProfile;
   final VoidCallback? onQrTap;
   final VoidCallback? onSummaryTap;
@@ -43,14 +45,33 @@ class HomeProfileProgressCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: AppColors.lightgrayColor,
-                  shape: BoxShape.circle,
+              GestureDetector(
+                onTap: onProfile,
+                child: Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: AppColors.lightgrayColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: ClipOval(
+                    child: avatarUrl != null && avatarUrl!.isNotEmpty
+                        ? Image.network(
+                            avatarUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Icons.person_rounded,
+                              color: AppColors.primaryColor,
+                              size: 28,
+                            ),
+                          )
+                        : Icon(
+                            Icons.person_rounded,
+                            color: AppColors.primaryColor,
+                            size: 28,
+                          ),
+                  ),
                 ),
-                child: Icon(Icons.person_rounded, color: AppColors.primaryColor, size: 28),
               ),
               const SizedBox(width: 14),
               Expanded(
