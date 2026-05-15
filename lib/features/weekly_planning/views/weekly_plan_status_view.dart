@@ -17,7 +17,7 @@ class WeeklyPlanningView extends StatelessWidget {
     return BlocProvider(
       create: (_) {
         final cubit = getIt<WeeklyPlanCubit>();
-        // 🔹 فحص ومسح الخطة لو عدى عليها 5 أيام أول ما الشاشة تفتح
+
         cubit.clearCacheIfExpired(); 
         return cubit;
       },
@@ -34,21 +34,21 @@ class _WeeklyPlanningBody extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       body: StreamBuilder<List<VisitModel>>(
-        // 🔹 إحنا بنراقب سوبابيز مباشرة هنا
+
         stream: WeeklyPlanRemoteDataSourceImpl().getVisitsWithCache(), 
         builder: (context, snapshot) {
           
-          // 1. حالة التحميل
+       
           if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // 2. حالة الخطأ
+ 
           if (snapshot.hasError) {
             return Center(child: Text("Error: ${snapshot.error}"));
           }
 
-          // 3. الداتا وصلت (سواء من الكاش أو من السيرفر لايف)
+         
           final List<VisitModel> allVisits = snapshot.data ?? [];
 
           return CustomScrollView(
@@ -81,7 +81,7 @@ class _WeeklyPlanningBody extends StatelessWidget {
                           itemBuilder: (context, index) {
                             final visit = allVisits[index];
                             
-                            // 🔹 هنا الحالة (Status) هتيجي متحدثة فوراً من السيرفر
+                       
                             String currentStatus = visit.status ?? 'pending';
                             
                             Color statusColor = currentStatus.toLowerCase() == 'approved' 

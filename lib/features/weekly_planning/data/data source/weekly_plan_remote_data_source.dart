@@ -18,7 +18,7 @@ class WeeklyPlanRemoteDataSourceImpl implements WeeklyPlanRemoteDataSource {
         throw Exception("User must be logged in to upload a plan.");
       }
 
-      // تحويل كل الـ Models لـ Maps للرفع الجماعي (Bulk Insert)
+     
       final List<Map<String, dynamic>> dataToUpload = visits.map((visit) {
         final map = visit.toJson();
         map['user_id'] = user.id; 
@@ -39,9 +39,7 @@ class WeeklyPlanRemoteDataSourceImpl implements WeeklyPlanRemoteDataSource {
       throw Exception("An unexpected error occurred.");
     }
   }
-  // في ملف WeeklyPlanRemoteDataSource
-// في ملف remote_data_source.dart
-// جوه كلاس WeeklyPlanRemoteDataSourceImpl
+
 Stream<List<VisitModel>> getVisitsStream() {
   final user = Supabase.instance.client.auth.currentUser;
   
@@ -53,7 +51,7 @@ Stream<List<VisitModel>> getVisitsStream() {
         return data.map((json) => VisitModel.fromJson(json)).toList();
       });
 }
-// في ملف remote_data_source.dart
+
 Future<void> saveVisitsToCache(List<VisitModel> visits) async {
     var box = Hive.box<VisitModel>('weekly_visits_box');
     var settingsBox = Hive.box('settings');
@@ -61,12 +59,12 @@ Future<void> saveVisitsToCache(List<VisitModel> visits) async {
     await box.clear(); 
     await box.addAll(visits);
     
-    // حفظ تاريخ اليوم بالملي ثانية كبداية للـ 5 أيام
+
     await settingsBox.put('last_sync_date', DateTime.now().millisecondsSinceEpoch);
     print("💾 Cache Updated & 5-Day Timer Started!");
   }
 
-  // 🔹 الـ Stream الذكي اللي بيغذي الأبليكيشن ويكاش الداتا
+
   Stream<List<VisitModel>> getVisitsWithCache() {
     final user = supabase.auth.currentUser;
     
@@ -77,7 +75,7 @@ Future<void> saveVisitsToCache(List<VisitModel> visits) async {
         .map((data) {
           List<VisitModel> visits = data.map((json) => VisitModel.fromJson(json)).toList();
           
-          // حفظ في الكاش فوراً كل ما ينزل تحديث من سوبابيز
+     
           saveVisitsToCache(visits);
           
           return visits;
