@@ -39,7 +39,7 @@ class _CreatePlanBody extends StatelessWidget {
             title: "Full Plan Submitted!",
             message: "Plan Submitted Successfully! Waiting for approval.",
           );
-          Navigator.pushReplacement(
+          Navigator.push(
             context,
             MaterialPageRoute<void>(
               builder: (_) => const WeeklyPlanningView(),
@@ -125,13 +125,16 @@ class _CreatePlanBody extends StatelessWidget {
                         const SizedBox(height: 12),
                         _buildVisitsList(currentDayVisits, cubit),
                       ],
-                      const SizedBox(height: 30),
-                      state is WeeklyPlanLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : CustomElevatedButton(
-                              text: "Submit Full Plan",
-                              onPressed: !cubit.isPlanComplete ? null : () => cubit.submitPlan(),
-                            ),
+                    const SizedBox(height: 30),
+state is WeeklyPlanLoading
+    ? const Center(child: CircularProgressIndicator())
+    : CustomElevatedButton(
+  text: cubit.isPlanAlreadySubmitted ? "Plan Submitted" : "Submit Full Plan",
+  onPressed: (cubit.isPlanAlreadySubmitted || !cubit.isPlanComplete)
+      ? null  
+      : () => cubit.submitPlan(), 
+),
+const SizedBox(height: 50),
                       const SizedBox(height: 50),
                     ],
                   ),

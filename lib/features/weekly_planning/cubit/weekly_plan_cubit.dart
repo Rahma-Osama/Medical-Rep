@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
 import 'package:medical_rep/features/visit_flow/data/models/visit_data_models.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/entities/visit_entity.dart';
 import '../domain/usecases/save_visit_usecase.dart';
 import '../domain/usecases/submit_plan_usecase.dart';
@@ -20,11 +21,9 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
   int selectedDayIndex = 0;
   final List<String> weekDays = ["Sat", "Sun", "Mon", "Tue", "Wed"];
 
-  // قوائم البيانات التي سيتم جلبها من Supabase
-  List<String> allBricks = []; 
+  List<String> allBricks = [];
   List<String> filteredDoctors = [];
 
-  // تخزين البيانات: كل يوم يحتوي على قائمة من الزيارات
   final Map<int, List<VisitEntity>> _weeklyData = {
     0: [], // Saturday
     1: [], // Sunday
@@ -33,62 +32,131 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
     4: [], // Wednesday
   };
 
-  // كائن مؤقت لتخزين الاختيارات الحالية
   VisitEntity _tempVisit = VisitEntity(shift: "AM", type: "Single");
+  bool _isSuccessfullyUploaded = false;
 
-  // جلب المناطق (Bricks) فور تشغيل الكيوبيت
+  bool get isPlanAlreadySubmitted => _isSuccessfullyUploaded;
+
   void _initData() async {
     try {
-      // 1. جلب المناطق
-      final fetchedBricks = await saveVisitUseCase.repository.getAreasFromSupabase();
-      allBricks = List<String>.from(fetchedBricks); 
+      final fetchedBricks =
+          await saveVisitUseCase.repository.getAreasFromSupabase();
+      allBricks = List<String>.from(fetchedBricks);
 
-      // 2. جلب الخطة المحفوظة في الكاش (Hive)
-      final cachedPlan = saveVisitUseCase.repository.getLocalPlan();
-      if (cachedPlan.isNotEmpty) {
-        _weeklyData.clear();
-        _weeklyData.addAll(cachedPlan);
-        print("✅ Cached Plan Loaded: ${_weeklyData.length} days found.");
+      final String? userId = Supabase.instance.client.auth.currentUser?.id;
+      final response = await Supabase.instance.client
+          .from('visits')
+          .select()
+          .eq('user_id', userId ?? '');
+
+      final List dataFromServer = response as List;
+
+      if (dataFromServer.isEmpty) {
+        _isSuccessfullyUploaded = false;
+        await resetPlan();
+      } else {
+        _isSuccessfullyUploaded = true;
+        final cachedPlan = saveVisitUseCase.repository.getLocalPlan();
+        if (cachedPlan.values.any((list) => list.isNotEmpty)) {
+          _weeklyData.clear();
+          _weeklyData.addAll(cachedPlan);
+        }
       }
-
       _emitUpdatedState();
     } catch (e) {
-      print("Cubit Init Error: $e");
-      _emitUpdatedState(error: "حدث خطأ في جلب البيانات");
+      print(" Init Error: $e");
+      _emitUpdatedState(error: "حدث خطأ أثناء جلب البيانات");
     }
   }
 
-  // 🔹 مكان الدوال الصحيح لمراقبة الـ 5 أيام والـ Cache (جوه الكلاس)
+  Future<void> submitPlan() async {
+    if (state is WeeklyPlanLoading) return;
+
+    emit(WeeklyPlanLoading(
+      weeklyData: _weeklyData,
+      selectedDayIndex: selectedDayIndex,
+      tempVisit: _tempVisit,
+      completionRate: _calculateCompletion,
+    ));
+
+    try {
+      await saveVisitUseCase.repository.saveWeeklyPlan(_weeklyData);
+
+      _isSuccessfullyUploaded = true;
+
+      if (Hive.isBoxOpen('settings')) {
+        await Hive.box('settings')
+            .put('last_sync_date', DateTime.now().millisecondsSinceEpoch);
+      }
+
+      _emitUpdatedState();
+
+      emit(WeeklyPlanSuccess(
+        weeklyData: _weeklyData,
+        selectedDayIndex: selectedDayIndex,
+        tempVisit: _tempVisit,
+        completionRate: _calculateCompletion,
+      ));
+
+      print(" Submit Success - Button should lock now");
+    } catch (e) {
+      _isSuccessfullyUploaded = false;
+      emit(WeeklyPlanError(
+        "خطأ في الرفع: ${e.toString()}",
+        weeklyData: _weeklyData,
+        selectedDayIndex: selectedDayIndex,
+        tempVisit: _tempVisit,
+        completionRate: _calculateCompletion,
+      ));
+    }
+  }
+
+  Future<void> resetPlan() async {
+    if (!Hive.isBoxOpen('weekly_visits_box')) {
+      await Hive.openBox<VisitModel>('weekly_visits_box');
+    }
+
+    var box = Hive.box<VisitModel>('weekly_visits_box');
+    await box.clear();
+
+    _weeklyData.forEach((key, value) => value.clear());
+
+    _isSuccessfullyUploaded = false;
+
+    _emitUpdatedState();
+    print("Plan Reset.");
+  }
+
   void clearCacheIfExpired() {
     if (_isCacheExpired()) {
       var box = Hive.box<VisitModel>('weekly_visits_box');
       box.clear();
-      
-      // ✅ الـ emit شغالة هنا تمام لأنها جوه الكلاس
-      emit(WeeklyPlanInitial()); 
-      print("🚨 Cache expired and cleared.");
+
+      emit(WeeklyPlanInitial());
+      print(" Cache expired and cleared.");
     }
   }
 
   bool _isCacheExpired() {
-    // التأكد أولاً إن البوكس مفتوح للأمان
     if (!Hive.isBoxOpen('settings')) return false;
-    
+
     var settingsBox = Hive.box('settings');
     int? lastSync = settingsBox.get('last_sync_date');
-    
+
     if (lastSync == null) return false;
 
     DateTime lastDate = DateTime.fromMillisecondsSinceEpoch(lastSync);
     int differenceInDays = DateTime.now().difference(lastDate).inDays;
 
-    return differenceInDays >= 5; 
+    return differenceInDays >= 5;
   }
 
   void tempUpdateField(String field, dynamic value) async {
     _tempVisit = _tempVisit.copyWith(
-      brick: field == "brick" ? value : _tempVisit.brick, 
-      doctor: field == "doctor" ? value : (field == "brick" ? null : _tempVisit.doctor),
+      brick: field == "brick" ? value : _tempVisit.brick,
+      doctor: field == "doctor"
+          ? value
+          : (field == "brick" ? null : _tempVisit.doctor),
       shift: field == "shift" ? value : _tempVisit.shift,
       type: field == "type" ? value : _tempVisit.type,
       notes: field == "notes" ? value : _tempVisit.notes,
@@ -97,17 +165,18 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
     );
 
     if (field == "brick" && value != null) {
-      filteredDoctors = []; 
+      filteredDoctors = [];
       _emitUpdatedState();
-      filteredDoctors = await saveVisitUseCase.repository.getDoctorsByArea(value);
+      filteredDoctors =
+          await saveVisitUseCase.repository.getDoctorsByArea(value);
     }
-    
+
     _emitUpdatedState();
   }
 
   String _getDateForDay(int index) {
     DateTime now = DateTime.now();
-    DateTime targetDate = now.add(Duration(days: index)); 
+    DateTime targetDate = now.add(Duration(days: index));
     return "${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}";
   }
 
@@ -118,13 +187,16 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
   }
 
   Future<void> addVisitToDay() async {
-    if (_tempVisit.doctor == null || _tempVisit.brick == null || _tempVisit.doctor!.isEmpty) {
+    if (_tempVisit.doctor == null ||
+        _tempVisit.brick == null ||
+        _tempVisit.doctor!.isEmpty) {
       _emitUpdatedState(error: "Please select Brick and Doctor first");
       return;
     }
 
     final currentDayVisits = _weeklyData[selectedDayIndex]!;
-    bool isDuplicate = currentDayVisits.any((v) => v.doctor == _tempVisit.doctor);
+    bool isDuplicate =
+        currentDayVisits.any((v) => v.doctor == _tempVisit.doctor);
 
     if (isDuplicate) {
       _emitUpdatedState(error: "هذا الدكتور مضاف بالفعل في جدول اليوم!");
@@ -132,7 +204,8 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
     }
 
     _weeklyData[selectedDayIndex]!.add(_tempVisit);
-    _tempVisit = VisitEntity(shift: "AM", type: "Single", brick: null, doctor: null); 
+    _tempVisit =
+        VisitEntity(shift: "AM", type: "Single", brick: null, doctor: null);
     _emitUpdatedState();
   }
 
@@ -143,46 +216,6 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
     }
   }
 
-  // استبدلي دالة submitPlan في الـ Cubit بهذا الكود:
-Future<void> submitPlan() async {
-  // 1. حماية ضد الضغط المتكرر: لو الستيت Loading ميعملش حاجة
-  if (state is WeeklyPlanLoading) return;
-
-  emit(WeeklyPlanLoading(
-    weeklyData: _weeklyData,
-    selectedDayIndex: selectedDayIndex,
-    tempVisit: _tempVisit,
-    completionRate: _calculateCompletion,
-  ));
-
-  try {
-    // 2. 🔹 نكتفي بـ saveWeeklyPlan لأنها دلوقت بقت بتسيف محلي وترفع للسيرفر "صح"
-    await saveVisitUseCase.repository.saveWeeklyPlan(_weeklyData); 
-    
-    // 3. تحديث وقت المزامنة للـ 5 أيام
-    if (Hive.isBoxOpen('settings')) {
-      await Hive.box('settings').put('last_sync_date', DateTime.now().millisecondsSinceEpoch);
-    }
-    
-    emit(WeeklyPlanSuccess(
-      weeklyData: _weeklyData,
-      selectedDayIndex: selectedDayIndex,
-      tempVisit: _tempVisit,
-      completionRate: _calculateCompletion,
-    ));
-
-    print(" Submit Success - Local & Remote Synced");
-
-  } catch (e) {
-    emit(WeeklyPlanError(
-      "خطأ في الرفع: ${e.toString()}",
-      weeklyData: _weeklyData,
-      selectedDayIndex: selectedDayIndex,
-      tempVisit: _tempVisit,
-      completionRate: _calculateCompletion,
-    ));
-  }
-}
   void refreshPlanStatus() async {
     emit(WeeklyPlanLoading(
       weeklyData: Map.from(_weeklyData),
@@ -204,25 +237,26 @@ Future<void> submitPlan() async {
     }
   }
 
-  bool get isPlanComplete => _weeklyData.values.every((list) => list.isNotEmpty);
+  bool get isPlanComplete =>
+      _weeklyData.values.every((list) => list.isNotEmpty);
 
   double get _calculateCompletion {
-    int daysWithVisits = _weeklyData.values.where((list) => list.isNotEmpty).length;
+    int daysWithVisits =
+        _weeklyData.values.where((list) => list.isNotEmpty).length;
     return daysWithVisits / weekDays.length;
   }
 
   void _emitUpdatedState({String? error}) {
     emit(WeeklyPlanUpdated(
-      weeklyData: Map.from(_weeklyData), 
+      weeklyData: Map.from(_weeklyData),
       selectedDayIndex: selectedDayIndex,
       completionRate: _calculateCompletion,
-      tempVisit: _tempVisit, 
+      tempVisit: _tempVisit,
       error: error,
     ));
   }
-} // 👈 قفل كلاس الـ Cubit الأساسي هنا
+}
 
-// الـ extension بيفضل بره الكلاس عادي جداً
 extension VisitEntityCopy on VisitEntity {
   VisitEntity copyWith({
     String? brick,

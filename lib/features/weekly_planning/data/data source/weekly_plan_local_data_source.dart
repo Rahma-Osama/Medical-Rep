@@ -11,7 +11,7 @@ class WeeklyPlanLocalDataSourceImpl implements WeeklyPlanLocalDataSource {
   @override
   Future<void> saveDayVisitsLocally(
       int dayIndex, List<VisitModel> visits) async {
-    // 🔹 الحل: شيلنا <VisitModel> عشان نقدر نخزن الـ List كاملة جوه المفتاح
+
     final box = Hive.box(boxName);
 
     await box.put(dayIndex, visits);
@@ -20,7 +20,7 @@ class WeeklyPlanLocalDataSourceImpl implements WeeklyPlanLocalDataSource {
 
   @override
   Map<int, List<VisitModel>> getCachedVisits() {
-    // 🔹 هنا كمان بنفتح الـ box بشكل عام
+
     final box = Hive.box(boxName);
     final Map<int, List<VisitModel>> cachedPlan = {};
 
@@ -29,7 +29,7 @@ class WeeklyPlanLocalDataSourceImpl implements WeeklyPlanLocalDataSource {
         final dynamic rawData = box.get(key);
 
         if (rawData != null && rawData is List) {
-          // تحويل البيانات من List<dynamic> إلى List<VisitModel>
+
           cachedPlan[key] = List<VisitModel>.from(rawData);
         }
       }

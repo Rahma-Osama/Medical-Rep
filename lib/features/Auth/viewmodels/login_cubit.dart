@@ -16,31 +16,36 @@ class LoginCubit extends Cubit<LoginState> {
   final formKey = GlobalKey<FormState>();
   bool obscurePassword = true;
 
-  Future<void> login() async {
-    if (!formKey.currentState!.validate()) return;
+Future<void> login() async {
+  if (!formKey.currentState!.validate()) return;
 
-    emit(LoginLoading());
+  emit(LoginLoading());
 
-    try {
-      // 1. تنفيذ عملية الدخول
-      await authRepository.login(
-        emailController.text.trim(),
-        passwordController.text.trim(),
-      );
+  try {
+    // 1. عملية تسجيل الدخول
+    await authRepository.login(
+      emailController.text.trim(),
+      passwordController.text.trim(),
+    );
 
-      // 2. جلب بيانات المستخدم الحالي فوراً بعد الدخول
-      final user = Supabase.instance.client.auth.currentUser;
+    final user = Supabase.instance.client.auth.currentUser;
 
-      // 3. قراءة الـ role من الـ metadata (اللي أضفناها في السوبابيز)
-      final String role = user?.userMetadata?['role'] ?? 'user';
+    // 2. جلب الـ Role من جدول الـ profiles (أضمن من الـ Metadata)
+    final data = await Supabase.instance.client
+        .from('profiles')
+        .select('role')
+        .eq('id', user?.id ?? '')
+        .single();
 
-      // 4. إرسال النجاح ومعاه الـ role
-      emit(LoginSuccess(role));
+    final String role = data['role'] ?? 'user';
 
-    } catch (e) {
-      emit(LoginFailure("خطأ في تسجيل الدخول: ${e.toString()}"));
-    }
+    // 3. نبعت النجاح ومعاه الرتبة عشان الـ UI يعمل Navigation صح
+    emit(LoginSuccess(role));
+    
+  } catch (e) {
+    emit(LoginFailure("خطأ في تسجيل الدخول: ${e.toString()}"));
   }
+}
   void togglePasswordVisibility() {
     obscurePassword = !obscurePassword;
     emit(LoginInitial());
