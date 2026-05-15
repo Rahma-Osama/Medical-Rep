@@ -44,74 +44,71 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
     return data.map((e) => e['name'] as String).toList();
   }
 
-  @override
-  Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
-    try {
-      final String? userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) throw Exception("User not logged in!");
+@override
+Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
+  try {
+    final String? userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) throw Exception("User not logged in!");
 
-      final List<Map<String, dynamic>> allVisitsToUpload = [];
+    final List<Map<String, dynamic>> allVisitsToUpload = [];
 
-      for (var entry in weeklyData.entries) {
-        final List<VisitModel> modelsList = entry.value.map((entity) => VisitModel(
-          brick: entity.brick,
-          doctor: entity.doctor,
-          shift: entity.shift,
-          type: entity.type,
-          date: entity.date,
-          dayName: entity.dayName,
-          status: 'pending',
-        )).toList();
-        
-        // حفظ محلي في Hive
-        await localDS.saveDayVisitsLocally(entry.key, modelsList);
+    for (var entry in weeklyData.entries) {
+      for (var entity in entry.value) {
+        // 🔹 بناخد الـ ID من الـ Entity لو موجود
+        final String? existingId = entity.visitId; 
 
-        for (var model in modelsList) {
-          allVisitsToUpload.add({
-            'user_id': userId,
-            'brick': model.brick,
-            'doctor_name': model.doctor,
-            'shift': model.shift,
-            'visit_type': model.type,
-            'visit_date': model.date,
-            'day_name': model.dayName,
-            'status': 'pending',
-          });
+        final Map<String, dynamic> visitMap = {
+          'user_id': userId,
+          'brick': entity.brick,
+          'doctor_name': entity.doctor,
+          'shift': entity.shift,
+          'visit_type': entity.type,
+          'visit_date': entity.date,
+          'day_name': entity.dayName,
+          'status': 'pending',
+          'admin_feedback': null,
+        };
+
+        // 🔹 لو الزيارة ليها ID (يعني كانت مرفوضة مثلاً)، بنحطه عشان يحصل Update
+        if (existingId != null && existingId.length > 10) {
+          visitMap['id'] = existingId;
         }
-      } // 🔹 القوس ده كان ناقص عندك
 
-      if (allVisitsToUpload.isNotEmpty) {
-        await Supabase.instance.client
-            .from('visits')
-            .upsert(
-              allVisitsToUpload, 
-              onConflict: 'user_id, visit_date, doctor_name'
-            );
-        print("✅ Plan synced with Supabase (Upserted)");
+        allVisitsToUpload.add(visitMap);
       }
-    } catch (e) {
-      print("❌ Repository Error: $e");
-      rethrow;
     }
-  }
 
-  @override
-  Map<int, List<VisitEntity>> getLocalPlan() {
-    final cachedModelsMap = localDS.getCachedVisits();
-    return cachedModelsMap.map((key, modelsList) => MapEntry(
-      key,
-      modelsList.map((model) => VisitEntity(
-        brick: model.brick,
-        doctor: model.doctor,
-        shift: model.shift,
-        type: model.type,
-        notes: model.notes,
-        date: model.date,
-        dayName: model.dayName,
-      )).toList(),
-    ));
+    if (allVisitsToUpload.isNotEmpty) {
+      // 🔹 الـ upsert مع الـ id هو اللي هيحل "unique_visit_idx"
+      await Supabase.instance.client
+          .from('visits')
+          .upsert(allVisitsToUpload, onConflict: 'id');
+      
+      print("✅ Done! Rejected changed to Pending");
+    }
+  } catch (e) {
+    print("❌ Repository Error: $e");
+    rethrow;
   }
-
+}
+@override
+Map<int, List<VisitEntity>> getLocalPlan() {
+  final cachedModelsMap = localDS.getCachedVisits();
+  return cachedModelsMap.map((key, modelsList) => MapEntry(
+    key,
+    modelsList.map((model) => VisitEntity(
+      visitId: model.visitId, // 🔹 التعديل الثالث: لازم نرجع الـ ID من الكاش
+      brick: model.brick,
+      doctor: model.doctor,
+      shift: model.shift,
+      type: model.type,
+      notes: model.notes,
+      date: model.date,
+      dayName: model.dayName,
+    )).toList(),
+  ));
+}
+ 
   @override
   Future<void> submitFullPlan() async {
     final Map<int, List<VisitModel>> visitsMap = localDS.getCachedVisits();
@@ -128,16 +125,20 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
 
   // 🔹 الميثود دي هي اللي بتخلي الشاشة تتحدث لوحدها (Realtime)
   @override
-  Stream<List<VisitModel>> getVisitsWithCache() {
-    final String? userId = Supabase.instance.client.auth.currentUser?.id;
-    return Supabase.instance.client
-        .from('visits')
-        .stream(primaryKey: ['id']) 
-        .eq('user_id', userId ?? '')
-        .order('visit_date')
-        .map((data) => data.map((json) => VisitModel.fromJson(json)).toList());
-  }
-
+ @override
+Stream<List<VisitModel>> getVisitsWithCache() {
+  final String? userId = Supabase.instance.client.auth.currentUser?.id;
+  
+  return Supabase.instance.client
+      .from('visits')
+      .stream(primaryKey: ['id']) 
+      .eq('user_id', userId ?? '')
+      .order('visit_date')
+      .map((data) {
+        // هنا الداتا بترجع من سوبابيز وفيها كل الكولومز
+        return data.map((json) => VisitModel.fromJson(json)).toList();
+      });
+}
   @override
   Future<void> syncPlanStatusWithServer() async {
     try {

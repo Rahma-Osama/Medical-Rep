@@ -8,6 +8,7 @@ import 'package:medical_rep/core/widgets/custom_app_bar.dart';
 import 'package:medical_rep/features/visit_flow/domain/usecases/validate_location_usecase.dart';
 import 'package:medical_rep/features/visit_flow/presentation/pages/active_visit_screen.dart';
 import 'package:medical_rep/features/weekly_planning/data/data%20source/weekly_plan_remote_data_source.dart';
+import 'package:medical_rep/features/weekly_planning/views/create_weekly_plan_view.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/cutom_plan_status_card.dart';
 import 'package:medical_rep/features/weekly_planning/cubit/weekly_plan_cubit.dart';
 
@@ -70,6 +71,7 @@ class _WeeklyPlanningBody extends StatelessWidget {
                         horizontal: 20,
                         vertical: 10,
                       ),
+                      
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -81,44 +83,113 @@ class _WeeklyPlanningBody extends StatelessWidget {
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: allVisits.length,
-                              itemBuilder: (context, index) {
-                                final visit = allVisits[index];
+                             itemBuilder: (context, index) {
+  final visit = allVisits[index];
 
-                                // منطق تحديد الحالة واللون
-                                String currentStatus = visit.status;
-                                Color statusColor = _getStatusColor(currentStatus);
+  // 1. منطق تحديد الحالة واللون
+  String currentStatus = visit.status;
+  Color statusColor = _getStatusColor(currentStatus);
 
-                                // منطق التحقق من التاريخ (هل الزيارة اليوم؟)
-                                final today = DateTime.now();
-                                final todayFormatted =
-                                    "${today.year.toString().padLeft(4, '0')}-"
-                                    "${today.month.toString().padLeft(2, '0')}-"
-                                    "${today.day.toString().padLeft(2, '0')}";
+  // 2. منطق التحقق من التاريخ (هل الزيارة اليوم؟)
+  final today = DateTime.now();
+  final todayFormatted =
+      "${today.year.toString().padLeft(4, '0')}-"
+      "${today.month.toString().padLeft(2, '0')}-"
+      "${today.day.toString().padLeft(2, '0')}";
 
-                                final isToday = visit.date == todayFormatted;
-                                final isApproved = currentStatus.toLowerCase() == 'approved';
-                                final showStartVisitButton = isToday && isApproved;
+  final isToday = visit.date == todayFormatted;
+  final isApproved = currentStatus.toLowerCase() == 'approved';
+  final isRejected = currentStatus.toLowerCase() == 'rejected';
+  final showStartVisitButton = isToday && isApproved;
 
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: CutomPlanStatusCard(
-                                    day: visit.dayName ?? "No Day",
-                                    date: visit.date ?? "No Date",
-                                    doctorName: visit.doctor ?? "Unknown Doctor",
-                                    specialty: visit.specialty ?? "No Specialty",
-                                    shift: visit.shift,
-                                    clinicName: visit.clinicName ?? "Clinic",
-                                    location: visit.brick ?? "No Location",
-                                    status: currentStatus,
-                                    color: statusColor,
-                                    icon: isApproved
-                                        ? Icons.check_circle_rounded
-                                        : Icons.access_time_filled_rounded,
-                                    showStartVisitButton: showStartVisitButton,
-                                    onStartVisit: () => _handleStartVisit(context, visit),
-                                  ),
-                                );
-                              },
+
+  final String feedback = visit.adminFeedback ?? ""; 
+
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // الكارد الأساسي
+        CutomPlanStatusCard(
+          day: visit.dayName ?? "No Day",
+          date: visit.date ?? "No Date",
+          doctorName: visit.doctor ?? "Unknown Doctor",
+          specialty: visit.specialty ?? "No Specialty",
+          shift: visit.shift,
+          clinicName: visit.clinicName ?? "Clinic",
+          location: visit.brick ?? "No Location",
+          status: currentStatus,
+          color: statusColor,
+          icon: isApproved
+              ? Icons.check_circle_rounded
+              : isRejected 
+                  ? Icons.cancel_rounded // أيقونة الرفض
+                  : Icons.access_time_filled_rounded,
+          showStartVisitButton: showStartVisitButton,
+          onStartVisit: () => _handleStartVisit(context, visit),
+        ),
+
+        // 🔹 التعديل الجديد: إظهار الفيدباك لو مرفوضة
+        if (isRejected && feedback.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 4, left: 8, right: 8, bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.05),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(16),
+                bottomRight: Radius.circular(16),
+              ),
+              border: Border.all(color: Colors.red.withOpacity(0.2)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.feedback_outlined, color: Colors.red, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Admin Note: $feedback",
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isRejected) 
+  Padding(
+    padding: const EdgeInsets.only(top: 8),
+    child: SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          // هنا بنوديه لشاشة التخطيط ونبعت بيانات الزيارة اللي اترفضت
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CreatePlanScreen(
+                initialVisit: visit, // بنبعت البيانات الحالية للتعديل
+              ),
+            ),
+          );
+        },
+        icon: const Icon(Icons.edit_note, color: Colors.blue),
+        label: const Text("Edit & Re-submit Plan"),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Colors.blue),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    ),
+  ),
+      ],
+    ),
+  );
+},
                             ),
                           const SizedBox(height: 100),
                         ],

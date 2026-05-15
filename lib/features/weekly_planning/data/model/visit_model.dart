@@ -42,12 +42,15 @@ class VisitModel extends HiveObject {
   @HiveField(12)
   String? targetProduct;
 
-  // 1. إضافة الـ ID اللي سوبابيز بيستخدمه (UUID)
   @HiveField(13)
   String? visitId;
 
+  // 🔹 1. إضافة حقل ملاحظات الأدمن في Hive (رقم 14)
+  @HiveField(14)
+  String? adminFeedback;
+
   VisitModel({
-    this.visitId, // أضفناه هنا
+    this.visitId,
     this.brick,
     this.doctor,
     this.shift = "AM",
@@ -61,11 +64,11 @@ class VisitModel extends HiveObject {
     this.lat,
     this.long,
     this.targetProduct,
+    this.adminFeedback, // 🔹 2. إضافته في الـ Constructor
   });
 
-  // 2. تحديث toJson عشان تشمل الـ ID لو موجود
   Map<String, dynamic> toJson() => {
-    "id": visitId, // مهم جداً للـ Update
+    "id": visitId,
     "visit_date": date,
     "day_name": dayName,
     "brick": brick,
@@ -78,12 +81,12 @@ class VisitModel extends HiveObject {
     "clinic_name": clinicName,
     "location": null,
     "target_product": targetProduct,
+    "admin_feedback": adminFeedback, // 🔹 3. إضافته في الـ Json (لو هتحتاجي ترفعيه)
   };
 
-  // 3. تحديث fromJson عشان تقرأ الـ ID (الـ UUID) من سوبابيز
   factory VisitModel.fromJson(Map<String, dynamic> json) {
     return VisitModel(
-      visitId: json['id']?.toString(), // قراءة الـ UUID من عمود id
+      visitId: json['id']?.toString(),
       doctor: json['doctor_name'],
       date: json['visit_date'],
       dayName: json['day_name'],
@@ -97,6 +100,8 @@ class VisitModel extends HiveObject {
       lat: json['latitude'] != null ? double.tryParse(json['latitude'].toString()) : null,
       long: json['longitude'] != null ? double.tryParse(json['longitude'].toString()) : null,
       targetProduct: json['target_product'],
+      // 🔹 4. قراءة القيمة من سوبابيز (تأكدي إن الاسم مطابق للكولوم في الداتابيز)
+      adminFeedback: json['admin_feedback'], 
     );
   }
 }

@@ -8,6 +8,7 @@ import 'package:medical_rep/core/widgets/custom_button_widget.dart';
 import 'package:medical_rep/core/widgets/custom_snackbar_widget.dart';
 import 'package:medical_rep/features/weekly_planning/cubit/weekly_plan_cubit.dart';
 import 'package:medical_rep/features/weekly_planning/cubit/weekly_plan_state.dart';
+import 'package:medical_rep/features/weekly_planning/data/model/visit_model.dart';
 import 'package:medical_rep/features/weekly_planning/domain/entities/visit_entity.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/custom_days_tab.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/custom_dropdown_widget.dart';
@@ -15,19 +16,28 @@ import 'package:medical_rep/features/weekly_planning/views/widgets/segmented_con
 import 'package:medical_rep/features/weekly_planning/views/weekly_plan_status_view.dart';
 
 class CreatePlanScreen extends StatelessWidget {
-  const CreatePlanScreen({super.key});
+  final VisitModel? initialVisit;
+  const CreatePlanScreen({super.key, this.initialVisit});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => getIt<WeeklyPlanCubit>(),
-      child: const _CreatePlanBody(),
+      create: (_) {
+        final cubit = getIt<WeeklyPlanCubit>();
+        if (initialVisit != null) {
+          cubit.forceEnableSubmission();
+          // يمكنك هنا تعبئة البيانات في الـ Cubit إذا أردتِ
+        }
+        return cubit;
+      },
+      // 🔹 التعديل هنا: مرري المتغير للـ Body
+      child: _CreatePlanBody(initialVisit: initialVisit), 
     );
   }
 }
-
 class _CreatePlanBody extends StatelessWidget {
-  const _CreatePlanBody();
+  final VisitModel? initialVisit;
+const _CreatePlanBody({this.initialVisit});
 
   @override
   Widget build(BuildContext context) {
@@ -126,14 +136,19 @@ class _CreatePlanBody extends StatelessWidget {
                         _buildVisitsList(currentDayVisits, cubit),
                       ],
                     const SizedBox(height: 30),
+// ابحثي عن الجزء ده وعدليه
 state is WeeklyPlanLoading
     ? const Center(child: CircularProgressIndicator())
     : CustomElevatedButton(
-  text: cubit.isPlanAlreadySubmitted ? "Plan Submitted" : "Submit Full Plan",
-  onPressed: (cubit.isPlanAlreadySubmitted || !cubit.isPlanComplete)
-      ? null  
-      : () => cubit.submitPlan(), 
-),
+        // الزرار يفتح لو: (مش متبعت قبل كدة) "أو" (لو بنعدل زيارة مرفوضة)
+        text: (cubit.isPlanAlreadySubmitted && initialVisit == null) 
+               ? "Plan Submitted" 
+               : "Submit Full Plan",
+        onPressed: (cubit.isPlanAlreadySubmitted && initialVisit == null) || !cubit.isPlanComplete
+            ? null  // الزرار يقفل بس لو الخطة مبعوتة ومفيش تعديل
+            : () => cubit.submitPlan(), 
+      ),
+
 const SizedBox(height: 50),
                       const SizedBox(height: 50),
                     ],
