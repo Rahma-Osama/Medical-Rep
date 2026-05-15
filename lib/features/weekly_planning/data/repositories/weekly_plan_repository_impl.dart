@@ -15,11 +15,16 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
   @override
   Future<List<String>> getAreasFromSupabase() async {
     try {
+ 
       final response = await Supabase.instance.client
           .from('doctors')
-          .select('area_name');
+          .select('area_name'); 
 
       final List data = response as List;
+
+  
+      print("Raw response: $data");
+
       final List<String> areas = data
           .map((e) => e['area_name']?.toString() ?? "")
           .where((element) => element.isNotEmpty)
@@ -44,57 +49,55 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
     return data.map((e) => e['name'] as String).toList();
   }
 
-  @override
-  Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
-    try {
-      final String? userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) throw Exception("User not logged in!");
+@override
+Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
+  try {
+    final String? userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) throw Exception("User not logged in!");
 
-      final List<Map<String, dynamic>> allVisitsToUpload = [];
+    final List<Map<String, dynamic>> allVisitsToUpload = [];
 
-      for (var entry in weeklyData.entries) {
-        final List<VisitModel> modelsList = entry.value.map((entity) => VisitModel(
-          brick: entity.brick,
-          doctor: entity.doctor,
-          shift: entity.shift,
-          type: entity.type,
-          date: entity.date,
-          dayName: entity.dayName,
-          status: 'pending',
-          // الـ lat والـ long هيتم ملئهم في الـ remoteDS عند الـ stream/cache
-        )).toList();
+    for (var entry in weeklyData.entries) {
+      final List<VisitModel> modelsList = entry.value.map((entity) => VisitModel(
+        brick: entity.brick,
+        doctor: entity.doctor,
+        shift: entity.shift,
+        type: entity.type,
+        date: entity.date,
+        dayName: entity.dayName,
+        status: 'pending',
+      )).toList();
+      
 
-        // 1. حفظ محلي في Hive (الجزء القديم للـ Planning)
-        await localDS.saveDayVisitsLocally(entry.key, modelsList);
+      await localDS.saveDayVisitsLocally(entry.key, modelsList);
 
-        // 2. تجهيز البيانات للرفع
-        for (var model in modelsList) {
-          allVisitsToUpload.add({
-            'user_id': userId,
-            'brick': model.brick,
-            'doctor_name': model.doctor,
-            'shift': model.shift,
-            'visit_type': model.type,
-            'visit_date': model.date,
-            'day_name': model.dayName,
-            'status': 'pending',
-          });
-        }
+
+      for (var model in modelsList) {
+        allVisitsToUpload.add({
+          'user_id': userId,
+          'brick': model.brick,
+          'doctor_name': model.doctor,
+          'shift': model.shift,
+          'visit_type': model.type,
+          'visit_date': model.date,
+          'day_name': model.dayName,
+          'status': 'pending',
+        });
       }
 
-      if (allVisitsToUpload.isNotEmpty) {
-        await Supabase.instance.client
-            .from('visits')
-            .upsert(
-            allVisitsToUpload,
+  
+    if (allVisitsToUpload.isNotEmpty) {
+      await Supabase.instance.client
+          .from('visits')
+          .upsert(
+            allVisitsToUpload, 
             onConflict: 'user_id, visit_date, doctor_name'
-        );
-        print("✅ Plan synced with Supabase");
-      }
-    } catch (e) {
-      print("❌ Repository Error: $e");
-      rethrow;
+          );
+      print("✅ Plan synced with Supabase (Upserted)");
     }
+  } catch (e) {
+    print(" Repository Error: $e");
+    rethrow;
   }
 
   @override
@@ -124,7 +127,8 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
       for (var dayVisits in visitsMap.values) {
         allVisitsToUpload.addAll(dayVisits);
       }
-      await remoteDS.uploadPlan(allVisitsToUpload);
+      await remoteDS
+          .uploadPlan(allVisitsToUpload); 
     } else {
       throw Exception("لا توجد بيانات محفوظة لرفعها");
     }
@@ -148,6 +152,8 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
           .eq('user_id', userId);
 
       final List dataFromServer = response as List;
+
+
       final box = Hive.box<VisitModel>('weekly_visits_box');
 
       bool isAnyVisitUpdated = false;
@@ -167,12 +173,19 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
         }
       }
 
+
       if (isAnyVisitUpdated) {
         await box.clear();
         await box.addAll(cachedVisits);
       }
     } catch (e) {
-      print("❌ Sync Error: $e");
+      print(" خطأ أثناء المزامنة: $e");
     }
   }
+  Stream<List<Map<String, dynamic>>> watchVisits() {
+  return Supabase.instance.client
+      .from('visits')
+      .stream(primaryKey: ['id']) 
+      .order('visit_date');
+}
 }

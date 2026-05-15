@@ -45,6 +45,7 @@ void main() async {
     await Hive.openBox('weekly_plan_box');
   }
 
+
   setupServiceLocator();
 
   runApp(const MedicalApp());
@@ -59,16 +60,17 @@ class MedicalApp extends StatelessWidget {
     if (user == null) return 'guest';
 
     try {
+  
       final data = await Supabase.instance.client
           .from('profiles')
           .select('role')
           .eq('id', user.id)
           .single();
 
-      return data['role'] ?? 'user';
+      return data['role'] ?? 'user'; 
     } catch (e) {
-      print("user");
-      return 'user'; // الافتراضي لو حصل مشكلة
+      print("Error fetching role: $e");
+      return 'user'; 
     }
   }
 
@@ -78,31 +80,28 @@ class MedicalApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Medical Rep App',
-      theme: ThemeData(
-        useMaterial3: true,
-        primaryColor: const Color(0xFF0055FF),
-      ),
+      theme: ThemeData(useMaterial3: true, primaryColor: const Color(0xFF0055FF)),
+      
+    
       home: user == null
           ? const LoginScreen()
+    
           : FutureBuilder<String>(
-        future: _getUserRole(),
-        builder: (context, snapshot) {
-          // أثناء جلب البيانات بنعرض شاشة تحميل بسيطة
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
+              future: _getUserRole(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                }
 
-          // توجيه المستخدم بناءً على الرتبة
-          if (snapshot.data == 'admin') {
-            return const AdminPanelScreen(); // شاشة الأدمن بتاعتك
-          } else {
-            return const HomeScreen(); // شاشة المندوب
-          }
-        },
-      ),
+                if (snapshot.data == 'admin') {
+                  return const AdminPanelScreen(); 
+                } else {
+                  return const HomeScreen(); 
+                }
+              },
+            ),
     );
   }
 }
