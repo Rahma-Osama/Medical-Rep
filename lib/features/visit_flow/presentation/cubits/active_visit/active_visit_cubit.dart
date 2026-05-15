@@ -48,7 +48,10 @@ class ActiveVisitCubit extends Cubit<ActiveVisitState> {
 
   // ── LOCATION ──
   Future<void> verifyLocation() async {
-    emit(state.copyWith(locationStatus: LocationStatus.verifying));
+    emit(state.copyWith(
+      locationStatus: LocationStatus.verifying,
+      clearFailure: true,
+    ));
 
     final result = await _verifyVisitLocation(visit.location);
 
@@ -63,6 +66,7 @@ class ActiveVisitCubit extends Cubit<ActiveVisitState> {
       onFailure: (f) {
         emit(state.copyWith(
           locationStatus: LocationStatus.failed,
+          failure: f,
         ));
       },
     );
@@ -78,7 +82,7 @@ class ActiveVisitCubit extends Cubit<ActiveVisitState> {
 
   // ── END VISIT ──
   Future<void> endVisit() async {
-    emit(state.copyWith(isEndingVisit: true));
+    emit(state.copyWith(isEndingVisit: true, clearFailure: true));
 
     final result = await _endVisit(visit.visitId, DateTime.now());
 
@@ -87,7 +91,7 @@ class ActiveVisitCubit extends Cubit<ActiveVisitState> {
         emit(state.copyWith(isEndingVisit: false, visitEndedSuccessfully: true));
       },
       onFailure: (f) {
-        emit(state.copyWith(isEndingVisit: false));
+        emit(state.copyWith(isEndingVisit: false, failure: f));
       },
     );
   }

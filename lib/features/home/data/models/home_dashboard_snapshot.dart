@@ -5,17 +5,17 @@ import 'package:medical_rep/features/profile/models/profile_user.dart';
 class HomeDashboardSnapshot {
   const HomeDashboardSnapshot({
     required this.profile,
-    required this.visitsDoneToday,
     required this.visitsPlannedToday,
     required this.pendingDrafts,
-    required this.weekVisitsDone,
+    required this.weekVisitsPlanned,
     required this.recentVisits,
   });
 
   final ProfileUser profile;
-  final int visitsDoneToday;
+  /// Non-rejected visits scheduled for today.
   final int visitsPlannedToday;
   final int pendingDrafts;
-  final int weekVisitsDone;
+  /// Non-rejected visits scheduled from Saturday through Thursday (current week).
+  final int weekVisitsPlanned;
   final List<HomeRecentVisitItem> recentVisits;
 }

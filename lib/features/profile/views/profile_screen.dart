@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:medical_rep/core/error/failure_ui_extension.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/styles/app_text_style.dart';
 import 'package:medical_rep/features/Auth/views/LoginView.dart';
+import 'package:medical_rep/core/services/services.dart';
+import 'package:medical_rep/core/widgets/custom_snackbar_widget.dart';
 import 'package:medical_rep/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:medical_rep/features/profile/domain/repositories/profile_repository.dart';
 import 'package:medical_rep/features/profile/domain/usecases/get_profile_usecase.dart';
+import 'package:medical_rep/features/profile/domain/usecases/update_profile_photo_usecase.dart';
+import 'package:medical_rep/features/profile/views/profile_photo_picker.dart';
 import 'package:medical_rep/features/profile/models/profile_user.dart';
 import 'package:medical_rep/features/profile/viewmodels/profile_cubit.dart';
 import 'package:medical_rep/features/profile/viewmodels/profile_state.dart';
 import 'package:medical_rep/features/profile/views/widgets/profile_header.dart';
 import 'package:medical_rep/features/profile/views/widgets/profile_info_card.dart';
 import 'package:medical_rep/features/profile/views/widgets/profile_menu_section.dart';
+import 'package:medical_rep/features/profile/views/edit_profile_email_screen.dart';
 import 'package:medical_rep/features/profile/views/widgets/profile_summary_card.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -30,9 +37,15 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final useCase = getProfileUseCase ?? GetProfileUseCase(ProfileRepositoryImpl());
+    final repository = getIt.isRegistered<ProfileRepository>()
+        ? getIt<ProfileRepository>()
+        : ProfileRepositoryImpl();
+    final getProfile = getProfileUseCase ?? GetProfileUseCase(repository);
+    final updatePhoto = getIt.isRegistered<UpdateProfilePhotoUseCase>()
+        ? getIt<UpdateProfilePhotoUseCase>()
+        : UpdateProfilePhotoUseCase(repository);
     return BlocProvider(
-      create: (_) => ProfileCubit(useCase)..load(),
+      create: (_) => ProfileCubit(getProfile, updatePhoto)..load(),
       child: _ProfileView(
         showBackButton: showBackButton,
         onSignOut: onSignOut,
@@ -52,14 +65,23 @@ class _ProfileView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ProfileCubit, ProfileState>(
+    return BlocConsumer<ProfileCubit, ProfileState>(
+      listenWhen: (prev, curr) => curr is ProfileError && prev != curr,
+      listener: (context, state) {
+        if (state case ProfileError(:final failure)) {
+          failure.showFailureDialog(
+            context,
+            onRetry: () => context.read<ProfileCubit>().load(),
+          );
+        }
+      },
       builder: (context, state) {
         return switch (state) {
         ProfileLoading() => Scaffold(
           backgroundColor: AppColors.backgroundColor,
           body: const Center(child: CircularProgressIndicator()),
         ),
-        ProfileError(:final message) => Scaffold(
+        ProfileError(:final failure) => Scaffold(
         backgroundColor: AppColors.backgroundColor,
         body: SafeArea(
         child: Padding(
@@ -67,7 +89,10 @@ class _ProfileView extends StatelessWidget {
         child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-        Text(message, textAlign: TextAlign.center),
+        Text(
+        failure.message,
+        textAlign: TextAlign.center,
+        ),
         const SizedBox(height: 16),
         FilledButton(
         onPressed: () => context.read<ProfileCubit>().load(),
@@ -82,6 +107,15 @@ class _ProfileView extends StatelessWidget {
         user: user,
         showBackButton: showBackButton,
         onSignOut: onSignOut,
+        profileCubit: context.read<ProfileCubit>(),
+        isUploadingPhoto: false,
+        ),
+        ProfilePhotoUploading(:final user) => _ProfileScrollBody(
+        user: user,
+        showBackButton: showBackButton,
+        onSignOut: onSignOut,
+        profileCubit: context.read<ProfileCubit>(),
+        isUploadingPhoto: true,
         ),
       };
       },
@@ -89,15 +123,20 @@ class _ProfileView extends StatelessWidget {
   }
 }
 
+
 class _ProfileScrollBody extends StatelessWidget {
   const _ProfileScrollBody({
     required this.user,
     required this.showBackButton,
+    required this.profileCubit,
+    required this.isUploadingPhoto,
     this.onSignOut,
   });
 
   final ProfileUser user;
   final bool showBackButton;
+  final ProfileCubit profileCubit;
+  final bool isUploadingPhoto;
   final VoidCallback? onSignOut;
 
   @override
@@ -115,7 +154,8 @@ class _ProfileScrollBody extends StatelessWidget {
             ),
             ProfileSummaryCard(
               user: user,
-              onEditPhoto: () {},
+              isUploadingPhoto: isUploadingPhoto,
+              onEditPhoto: isUploadingPhoto ? null : () => _pickAndUploadPhoto(context),
             ),
             const SizedBox(height: 8),
             ProfileInfoCard(user: user),
@@ -124,29 +164,14 @@ class _ProfileScrollBody extends StatelessWidget {
               title: 'Account',
               items: [
                 ProfileMenuItem(
-                  icon: Icons.person_outline_rounded,
+                  icon: Icons.email_outlined,
                   title: 'Edit profile',
-                  subtitle: 'Name, phone, territory',
-                  onTap: () {},
+                  subtitle: 'Update email address',
+                  onTap: () => _openEditEmail(context),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            ProfileMenuSection(
-              title: 'Support',
-              items: [
-                ProfileMenuItem(
-                  icon: Icons.help_outline_rounded,
-                  title: 'Help & support',
-                  onTap: () {},
-                ),
-                ProfileMenuItem(
-                  icon: Icons.policy_outlined,
-                  title: 'Privacy',
-                  onTap: () {},
-                ),
-              ],
-            ),
             const SizedBox(height: 28),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -191,7 +216,39 @@ class _ProfileScrollBody extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _pickAndUploadPhoto(BuildContext context) async {
+    final file = await pickProfilePhoto(context);
+    if (file == null || !context.mounted) return;
+
+    final failure = await profileCubit.uploadPhoto(file);
+    if (!context.mounted) return;
+
+    if (failure != null) {
+      await failure.showFailureDialog(context);
+      return;
+    }
+
+    AppSnackBar.showSuccess(
+      context: context,
+      title: 'Photo updated',
+      message: 'Your profile photo was saved.',
+    );
+  }
+
+  Future<void> _openEditEmail(BuildContext context) async {
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => EditProfileEmailScreen(currentEmail: user.email),
+      ),
+    );
+    if (!context.mounted) return;
+    if (updated == true) {
+      await profileCubit.load();
+    }
+  }
 }
+
 Future<void> _handleSignOut(BuildContext context) async {
   try {
     await Supabase.instance.client.auth.signOut();

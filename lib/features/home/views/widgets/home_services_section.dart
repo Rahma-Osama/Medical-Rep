@@ -7,14 +7,12 @@ class HomeServicesSection extends StatelessWidget {
     super.key,
     this.onViewAll,
     this.onDoctorsList,
-    this.onPharmacyList,
     this.onWeeklyPlanning,
     this.onDrafts,
   });
 
   final VoidCallback? onViewAll;
   final VoidCallback? onDoctorsList;
-  final VoidCallback? onPharmacyList;
   final VoidCallback? onWeeklyPlanning;
   final VoidCallback? onDrafts;
 
@@ -33,22 +31,6 @@ class HomeServicesSection extends StatelessWidget {
                 fontSize: 18,
               ),
             ),
-            TextButton(
-              onPressed: onViewAll ?? () {},
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                'View All',
-                style: AppTextStyle.body.copyWith(
-                  color: AppColors.secondaryColor,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-            ),
           ],
         ),
         const SizedBox(height: 14),
@@ -64,25 +46,16 @@ class HomeServicesSection extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _ServiceTile(
-                icon: Icons.medication_outlined,
-                label: 'Pharmacy List',
-                onTap: onPharmacyList,
-              ),
-            ),
-            const SizedBox(width: 12),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _ServiceTile(
                 icon: Icons.calendar_month_rounded,
                 label: 'Weekly Planning',
                 onTap: onWeeklyPlanning,
               ),
             ),
-            const SizedBox(width: 12),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
             Expanded(
               child: _ServiceTile(
                 icon: Icons.description_outlined,
@@ -118,7 +91,7 @@ class _ServiceTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: AppColors.blackColor.withOpacity( 0.04),
+                color: AppColors.blackColor.withOpacity(0.04),
                 blurRadius: 14,
                 offset: const Offset(0, 6),
               ),
@@ -130,7 +103,7 @@ class _ServiceTile extends StatelessWidget {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryColor.withOpacity(  0.08),
+                  color: AppColors.primaryColor.withOpacity(0.08),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: AppColors.primaryColor, size: 26),

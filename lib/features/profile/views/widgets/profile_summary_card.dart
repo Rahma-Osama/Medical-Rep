@@ -8,10 +8,12 @@ class ProfileSummaryCard extends StatelessWidget {
     super.key,
     required this.user,
     this.onEditPhoto,
+    this.isUploadingPhoto = false,
   });
 
   final ProfileUser user;
   final VoidCallback? onEditPhoto;
+  final bool isUploadingPhoto;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +27,7 @@ class ProfileSummaryCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: AppColors.blackColor.withOpacity(   0.08),
+              color: AppColors.blackColor.withOpacity(0.08),
               blurRadius: 24,
               offset: const Offset(0, 12),
             ),
@@ -36,32 +38,27 @@ class ProfileSummaryCard extends StatelessWidget {
             Stack(
               alignment: Alignment.bottomRight,
               children: [
-                Container(
-                  width: 96,
-                  height: 96,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primaryColor.withOpacity(0.15),
-                        AppColors.thirdColor.withOpacity( 0.2),
-                      ],
+                _AvatarCircle(
+                  avatarUrl: user.avatarUrl,
+                  isUploading: isUploadingPhoto,
+                ),
+                if (!isUploadingPhoto)
+                  Material(
+                    color: AppColors.secondaryColor,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      onTap: onEditPhoto,
+                      customBorder: const CircleBorder(),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Icon(
+                          Icons.camera_alt_outlined,
+                          color: AppColors.whiteColor,
+                          size: 18,
+                        ),
+                      ),
                     ),
                   ),
-                  child: Icon(Icons.person_rounded, size: 48, color: AppColors.primaryColor),
-                ),
-                Material(
-                  color: AppColors.secondaryColor,
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    onTap: onEditPhoto,
-                    customBorder: const CircleBorder(),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Icon(Icons.camera_alt_outlined, color: AppColors.whiteColor, size: 18),
-                    ),
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 14),
@@ -90,7 +87,7 @@ class ProfileSummaryCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.primaryColor.withOpacity(   0.06),
+                color: AppColors.primaryColor.withOpacity(0.06),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -104,6 +101,83 @@ class ProfileSummaryCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AvatarCircle extends StatelessWidget {
+  const _AvatarCircle({
+    required this.avatarUrl,
+    required this.isUploading,
+  });
+
+  final String? avatarUrl;
+  final bool isUploading;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPhoto = avatarUrl != null && avatarUrl!.isNotEmpty;
+
+    return Container(
+      width: 96,
+      height: 96,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primaryColor.withOpacity(0.15),
+            AppColors.thirdColor.withOpacity(0.2),
+          ],
+        ),
+      ),
+      child: ClipOval(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (hasPhoto)
+              Image.network(
+                avatarUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _placeholderIcon(),
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.primaryColor,
+                      value: progress.expectedTotalBytes != null
+                          ? progress.cumulativeBytesLoaded /
+                              progress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+              )
+            else
+              _placeholderIcon(),
+            if (isUploading)
+              ColoredBox(
+                color: Colors.black.withOpacity(0.45),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _placeholderIcon() {
+    return Center(
+      child: Icon(
+        Icons.person_rounded,
+        size: 48,
+        color: AppColors.primaryColor,
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:medical_rep/core/error/app_failure.dart';
 
 enum LocationStatus { idle, verifying, verified, failed }
 
@@ -8,7 +9,7 @@ class ActiveVisitState extends Equatable {
   final String notes;
   final bool isEndingVisit;
   final bool visitEndedSuccessfully;
-  final String? errorMessage;
+  final AppFailure? failure;
   final int tick;
 
   const ActiveVisitState({
@@ -17,7 +18,7 @@ class ActiveVisitState extends Equatable {
     this.notes = '',
     this.isEndingVisit = false,
     this.visitEndedSuccessfully = false,
-    this.errorMessage,
+    this.failure,
     this.tick = 0,
   });
 
@@ -27,7 +28,8 @@ class ActiveVisitState extends Equatable {
     String? notes,
     bool? isEndingVisit,
     bool? visitEndedSuccessfully,
-    String? errorMessage,
+    AppFailure? failure,
+    bool clearFailure = false,
     int? tick,
   }) {
     return ActiveVisitState(
@@ -37,7 +39,7 @@ class ActiveVisitState extends Equatable {
       isEndingVisit: isEndingVisit ?? this.isEndingVisit,
       visitEndedSuccessfully:
       visitEndedSuccessfully ?? this.visitEndedSuccessfully,
-      errorMessage: errorMessage ?? this.errorMessage,
+      failure: clearFailure ? null : (failure ?? this.failure),
       tick: tick ?? this.tick,
     );
   }
@@ -49,7 +51,7 @@ class ActiveVisitState extends Equatable {
     notes,
     isEndingVisit,
     visitEndedSuccessfully,
-    errorMessage,
+    failure,
     tick,
   ];
 }

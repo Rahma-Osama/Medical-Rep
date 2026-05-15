@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
+import 'package:medical_rep/core/utils/work_week_dates.dart';
 import 'package:medical_rep/features/visit_flow/data/models/visit_data_models.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/entities/visit_entity.dart';
@@ -39,10 +40,11 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
 
   void _initData() async {
     try {
-      final fetchedBricks =
-          await saveVisitUseCase.repository.getAreasFromSupabase();
-      allBricks = List<String>.from(fetchedBricks);
+      // 1. جلب المناطق (From both branches)
+      final fetchedBricks = await saveVisitUseCase.repository.getAreasFromSupabase();
+      allBricks = List<String>.from(fetchedBricks); 
 
+      // 2. التحقق من السيرفر وجلب الخطة المحفوظة (Merged from dev2 & home_profile_updates)
       final String? userId = Supabase.instance.client.auth.currentUser?.id;
       final response = await Supabase.instance.client
           .from('visits')
@@ -57,9 +59,12 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
       } else {
         _isSuccessfullyUploaded = true;
         final cachedPlan = saveVisitUseCase.repository.getLocalPlan();
-        if (cachedPlan.values.any((list) => list.isNotEmpty)) {
+        
+        if (cachedPlan.isNotEmpty || cachedPlan.values.any((list) => list.isNotEmpty)) {
           _weeklyData.clear();
-          _weeklyData.addAll(cachedPlan);
+          // Using the advanced normalization utility from home_profile_updates
+          _weeklyData.addAll(_normalizeCachedPlanDates(cachedPlan));
+          print("✅ Cached Plan Loaded & Normalized: ${_weeklyData.length} days found.");
         }
       }
       _emitUpdatedState();
@@ -174,38 +179,65 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
     _emitUpdatedState();
   }
 
-  String _getDateForDay(int index) {
-    DateTime now = DateTime.now();
-    DateTime targetDate = now.add(Duration(days: index));
-    return "${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}";
+  // Resolved Conflict 2: Keeps the clean static logic from home_profile_updates
+  String _getDateForDay(int index) =>
+      WorkWeekDates.isoDateForPlanDay(index);
+
+  Map<int, List<VisitEntity>> _normalizeCachedPlanDates(
+    Map<int, List<VisitEntity>> plan,
+  ) {
+    return plan.map((dayIndex, visits) {
+      return MapEntry(
+        dayIndex,
+        visits
+            .map(
+              (v) => v.copyWith(
+                date: WorkWeekDates.normalizedVisitDate(
+                  dayName: v.dayName ?? weekDays[dayIndex],
+                  visitDate: v.date,
+                ),
+                dayName: v.dayName ?? weekDays[dayIndex],
+              ),
+            )
+            .toList(),
+      );
+    });
   }
 
   void selectDay(int index) {
     selectedDayIndex = index;
-    _tempVisit = VisitEntity(shift: "AM", type: "Single");
+    _tempVisit = VisitEntity(
+      shift: "AM",
+      type: "Single",
+      date: _getDateForDay(index),
+      dayName: weekDays[index],
+    );
     _emitUpdatedState();
   }
 
-Future<void> addVisitToDay() async {
+  Future<void> addVisitToDay() async {
     if (_tempVisit.doctor == null || _tempVisit.brick == null) return;
 
     final currentDayVisits = _weeklyData[selectedDayIndex]!;
     
-    // بنشوف هل الدكتور ده موجود في القائمة الحالية؟
     int existingIndex = currentDayVisits.indexWhere((v) => v.doctor == _tempVisit.doctor);
 
+    // Resolved Conflict 3: Preserved the duplicate prevention and local state update logic safely
+    final visitToAdd = _tempVisit.copyWith(
+      date: _getDateForDay(selectedDayIndex),
+      dayName: weekDays[selectedDayIndex],
+    );
+
     if (existingIndex != -1) {
-      // ✅ لو موجود: بنحدثه في مكانه وبنخلي الـ ID القديم زي ما هو
-      // وده اللي هيخلي السيرفر يعمل Update مش Insert
-      currentDayVisits[existingIndex] = _tempVisit;
+      currentDayVisits[existingIndex] = visitToAdd;
     } else {
-      // لو مش موجود: بنضيفه كزيارة جديدة
-      _weeklyData[selectedDayIndex]!.add(_tempVisit);
+      currentDayVisits.add(visitToAdd);
     }
 
     _tempVisit = VisitEntity(shift: "AM", type: "Single", brick: null, doctor: null);
     _emitUpdatedState();
   }
+
   void removeVisitFromDay(int visitIndex) {
     if (_weeklyData[selectedDayIndex]!.isNotEmpty) {
       _weeklyData[selectedDayIndex]!.removeAt(visitIndex);
@@ -252,21 +284,19 @@ Future<void> addVisitToDay() async {
       error: error,
     ));
   }
-  // جوه كلاس WeeklyPlanCubit
-void forceEnableSubmission() {
-  // بنعدل المتغير الأصلي اللي شايل القيمة
-  _isSuccessfullyUploaded = false; 
 
-  // بنبعت الحالة الجديدة عشان الـ UI يحس بالتغيير ويفتح الزرار
-  if (state is WeeklyPlanUpdated) {
-    final currentState = state as WeeklyPlanUpdated;
-    emit(WeeklyPlanUpdated(
-      weeklyData: currentState.weeklyData,
-      selectedDayIndex: currentState.selectedDayIndex,
-      tempVisit: currentState.tempVisit,
-    ));
+  void forceEnableSubmission() {
+    _isSuccessfullyUploaded = false; 
+
+    if (state is WeeklyPlanUpdated) {
+      final currentState = state as WeeklyPlanUpdated;
+      emit(WeeklyPlanUpdated(
+        weeklyData: currentState.weeklyData,
+        selectedDayIndex: currentState.selectedDayIndex,
+        tempVisit: currentState.tempVisit,
+      ));
+    }
   }
-}
 }
 
 extension VisitEntityCopy on VisitEntity {
@@ -289,5 +319,4 @@ extension VisitEntityCopy on VisitEntity {
       dayName: dayName ?? this.dayName,
     );
   }
-  
 }

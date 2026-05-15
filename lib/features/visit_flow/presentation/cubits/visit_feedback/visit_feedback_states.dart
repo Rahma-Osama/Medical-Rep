@@ -1,3 +1,4 @@
+import 'package:medical_rep/core/error/app_failure.dart';
 import 'package:medical_rep/features/visit_flow/domain/entities/visit_feedback.dart';
 
 class VisitFeedbackState {
@@ -5,7 +6,7 @@ class VisitFeedbackState {
   final bool sampleGiven;
   final bool followUpRequired;
   final List<String> attachmentPaths;
-  final String? errorMessage;
+  final AppFailure? failure;
   final bool isLoading;
   final bool isSuccess;
 
@@ -14,7 +15,7 @@ class VisitFeedbackState {
     this.sampleGiven = false,
     this.followUpRequired = false,
     this.attachmentPaths = const [],
-    this.errorMessage,
+    this.failure,
     this.isLoading = false,
     this.isSuccess = false,
   });
@@ -24,7 +25,8 @@ class VisitFeedbackState {
     bool? sampleGiven,
     bool? followUpRequired,
     List<String>? attachmentPaths,
-    String? errorMessage,
+    AppFailure? failure,
+    bool clearFailure = false,
     bool? isLoading,
     bool? isSuccess,
   }) {
@@ -33,7 +35,7 @@ class VisitFeedbackState {
       sampleGiven: sampleGiven ?? this.sampleGiven,
       followUpRequired: followUpRequired ?? this.followUpRequired,
       attachmentPaths: attachmentPaths ?? this.attachmentPaths,
-      errorMessage: errorMessage,
+      failure: clearFailure ? null : (failure ?? this.failure),
       isLoading: isLoading ?? false,
       isSuccess: isSuccess ?? false,
     );

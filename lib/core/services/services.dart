@@ -12,17 +12,26 @@ import '../../features/weekly_planning/cubit/weekly_plan_cubit.dart';
 import '../../features/weekly_planning/data/data%20source/weekly_plan_local_data_source.dart';
 import '../../features/weekly_planning/domain/usecases/save_visit_usecase.dart';
 import '../../features/weekly_planning/domain/usecases/submit_plan_usecase.dart';
+import '../../core/services/image_upload.dart';
 import '../../features/profile/data/repositories/profile_repository_impl.dart';
 import '../../features/profile/domain/repositories/profile_repository.dart';
+import '../../features/profile/domain/usecases/update_profile_photo_usecase.dart';
 
 final getIt = GetIt.instance;
 
 void setupServiceLocator() {
+
+  getIt.registerLazySingleton<ImageUpload>(() => ImageUpload());
+
   // ===========================================================================
   // 1. Profile & Home
   // ===========================================================================
+
   getIt.registerLazySingleton<ProfileRepository>(
         () => ProfileRepositoryImpl(),
+  );
+  getIt.registerLazySingleton<UpdateProfilePhotoUseCase>(
+    () => UpdateProfilePhotoUseCase(getIt<ProfileRepository>()),
   );
   getIt.registerLazySingleton<HomeDashboardRepository>(
         () => HomeDashboardRepositoryImpl(
@@ -88,4 +97,6 @@ void setupServiceLocator() {
       submitPlanUseCase: getIt<SubmitPlanUseCase>(),
     ),
   );
+
+
 }

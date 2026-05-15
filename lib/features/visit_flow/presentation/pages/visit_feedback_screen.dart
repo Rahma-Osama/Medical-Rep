@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:medical_rep/core/error/failure_ui_extension.dart';
 import 'package:medical_rep/core/services/connectivity_service.dart';
 import 'package:medical_rep/features/visit_flow/data/datasources/local/visit_local_datasource.dart';
 import 'package:medical_rep/features/visit_flow/data/datasources/remote/visit_remote_datasource.dart';
@@ -76,7 +77,8 @@ class _VisitFeedbackViewState extends State<_VisitFeedbackView> {
       backgroundColor: const Color(0xFFF5F7FA),
       body: BlocListener<VisitFeedbackCubit, VisitFeedbackState>(
         listenWhen: (prev, curr) =>
-        prev.isSuccess != curr.isSuccess || prev.errorMessage != curr.errorMessage,
+            prev.isSuccess != curr.isSuccess ||
+            prev.failure != curr.failure,
         listener: (context, state) {
           if (state.isSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -87,12 +89,13 @@ class _VisitFeedbackViewState extends State<_VisitFeedbackView> {
             );
             Navigator.popUntil(context, (route) => route.isFirst);
           }
-          if (state.errorMessage != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.errorMessage!),
-                backgroundColor: Colors.red,
-              ),
+          final failure = state.failure;
+          if (failure != null) {
+            failure.showFailureDialog(
+              context,
+              onRetry: () => context.read<VisitFeedbackCubit>().submitFeedback(
+                    _notesController.text,
+                  ),
             );
           }
         },

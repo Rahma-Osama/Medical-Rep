@@ -5,17 +5,15 @@ import 'package:medical_rep/core/styles/app_text_style.dart';
 class HomeStatsRow extends StatelessWidget {
   const HomeStatsRow({
     super.key,
-    required this.visitsToday,
-    required this.visitsPlanned,
+    required this.visitsPlannedToday,
     required this.pendingDrafts,
-    required this.weekVisitsDone,
+    required this.weekVisitsPlanned,
     this.onDraftsTap,
   });
 
-  final int visitsToday;
-  final int visitsPlanned;
+  final int visitsPlannedToday;
   final int pendingDrafts;
-  final int weekVisitsDone;
+  final int weekVisitsPlanned;
   final VoidCallback? onDraftsTap;
 
   @override
@@ -24,10 +22,10 @@ class HomeStatsRow extends StatelessWidget {
       children: [
         Expanded(
           child: _StatCard(
-            icon: Icons.check_circle_outline_rounded,
-            value: '$visitsToday',
+            icon: Icons.calendar_today_outlined,
+            value: '$visitsPlannedToday',
             title: 'Visits Today',
-            subtitle: 'of $visitsPlanned planned',
+            subtitle: 'planned today',
           ),
         ),
         const SizedBox(width: 12),
@@ -43,10 +41,10 @@ class HomeStatsRow extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: _StatCard(
-            icon: Icons.trending_up_rounded,
-            value: '$weekVisitsDone',
+            icon: Icons.date_range_outlined,
+            value: '$weekVisitsPlanned',
             title: 'This Week',
-            subtitle: 'visits done',
+            subtitle: 'planned Sat–Thu',
           ),
         ),
       ],

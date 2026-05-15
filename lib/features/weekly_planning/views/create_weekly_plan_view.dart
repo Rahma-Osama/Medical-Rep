@@ -21,23 +21,23 @@ class CreatePlanScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
+    return BlocProvider<WeeklyPlanCubit>(
       create: (_) {
         final cubit = getIt<WeeklyPlanCubit>();
         if (initialVisit != null) {
           cubit.forceEnableSubmission();
-          // يمكنك هنا تعبئة البيانات في الـ Cubit إذا أردتِ
+          // You can populate data into the Cubit here if needed
         }
         return cubit;
       },
-      // 🔹 التعديل هنا: مرري المتغير للـ Body
       child: _CreatePlanBody(initialVisit: initialVisit), 
     );
   }
 }
+
 class _CreatePlanBody extends StatelessWidget {
   final VisitModel? initialVisit;
-const _CreatePlanBody({this.initialVisit});
+  const _CreatePlanBody({this.initialVisit});
 
   @override
   Widget build(BuildContext context) {
@@ -135,21 +135,17 @@ const _CreatePlanBody({this.initialVisit});
                         const SizedBox(height: 12),
                         _buildVisitsList(currentDayVisits, cubit),
                       ],
-                    const SizedBox(height: 30),
-// ابحثي عن الجزء ده وعدليه
-state is WeeklyPlanLoading
-    ? const Center(child: CircularProgressIndicator())
-    : CustomElevatedButton(
-        // الزرار يفتح لو: (مش متبعت قبل كدة) "أو" (لو بنعدل زيارة مرفوضة)
-        text: (cubit.isPlanAlreadySubmitted && initialVisit == null) 
-               ? "Plan Submitted" 
-               : "Submit Full Plan",
-        onPressed: (cubit.isPlanAlreadySubmitted && initialVisit == null) || !cubit.isPlanComplete
-            ? null  // الزرار يقفل بس لو الخطة مبعوتة ومفيش تعديل
-            : () => cubit.submitPlan(), 
-      ),
-
-const SizedBox(height: 50),
+                      const SizedBox(height: 30),
+                      state is WeeklyPlanLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : CustomElevatedButton(
+                              text: (cubit.isPlanAlreadySubmitted && initialVisit == null) 
+                                  ? "Plan Submitted" 
+                                  : "Submit Full Plan",
+                              onPressed: (cubit.isPlanAlreadySubmitted && initialVisit == null) || !cubit.isPlanComplete
+                                  ? null  // Disable button if plan is uploaded and not editing
+                                  : () => cubit.submitPlan(), 
+                            ),
                       const SizedBox(height: 50),
                     ],
                   ),
@@ -195,7 +191,7 @@ const SizedBox(height: 50),
       borderRadius: BorderRadius.circular(24),
       boxShadow: [
         BoxShadow(
-          color: Colors.black. withOpacity( 0.05),
+          color: Colors.black.withOpacity(0.05),
           blurRadius: 20,
           offset: const Offset(0, 10),
         ),
