@@ -26,7 +26,7 @@ Future<void> updatePlanStatusWithNotes({
         .from('visits') 
         .update({
           'status': newStatus, // اتأكدي إنك ضفتي العمود ده في سوبابيز
-          'notes': adminNotes,   // اتأكدي إنك ضفتي العمود ده في سوبابيز
+          'admin_notes': adminNotes,   // اتأكدي إنك ضفتي العمود ده في سوبابيز
         })
         .eq('id', visitId) 
         .select();
