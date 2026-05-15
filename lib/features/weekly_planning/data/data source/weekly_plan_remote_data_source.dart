@@ -13,7 +13,7 @@ abstract class WeeklyPlanRemoteDataSource {
 class WeeklyPlanRemoteDataSourceImpl implements WeeklyPlanRemoteDataSource {
   final SupabaseClient supabase = Supabase.instance.client;
 
-  @override
+@override
   Future<void> uploadPlan(List<VisitModel> visits) async {
     try {
       final user = supabase.auth.currentUser;
@@ -21,19 +21,30 @@ class WeeklyPlanRemoteDataSourceImpl implements WeeklyPlanRemoteDataSource {
 
       final List<Map<String, dynamic>> dataToUpload = visits.map((visit) {
         final map = visit.toJson();
-        map.remove('id'); // بنشيل الـ ID عشان السيرفر هو اللي يكريته
+        
+        // 🔹 الحل الذكي لخطأ الـ UUID:
+        // لو الـ id مش UUID حقيقي (طوله أقل من 10 مثلاً أو null)، شيليه خالص
+        // عشان سوبابيز يشغل الدالة بتاعته gen_random_uuid() ويكريته هو
+        if (map['id'] == null || map['id'].toString().length < 10) {
+          map.remove('id'); 
+        }
+        
         map['user_id'] = user.id;
         return map;
       }).toList();
 
-      await supabase.from('visits').insert(dataToUpload);
-      debugPrint("Uploaded with Server-side UUIDs");
+      // 🔹 بنستخدم upsert عشان "تبدل" الزيارة المرفوضة في مكانها
+      await supabase.from('visits').upsert(
+        dataToUpload,
+        onConflict: 'id', 
+      );
+      
+      debugPrint("✅ تم التحديث بنجاح");
     } catch (e) {
-      debugPrint("Error in uploadPlan: $e");
+      debugPrint("❌ Error in uploadPlan: $e");
       rethrow;
     }
   }
-
   @override
   Stream<List<VisitModel>> getVisitsStream() {
     final user = supabase.auth.currentUser;
@@ -56,10 +67,10 @@ class WeeklyPlanRemoteDataSourceImpl implements WeeklyPlanRemoteDataSource {
         .eq('user_id', user?.id ?? '')
         .asyncMap((data) async {
       try {
-        // 1. تحويل الـ JSON لموديلز
+   
         List<VisitModel> visits = data.map((json) => VisitModel.fromJson(json)).toList();
 
-        // 2. جلب إحداثيات الدكاترة (Join Logic)
+
         final List<String> doctorNames = visits
             .map((e) => e.doctor ?? "")
             .where((n) => n.isNotEmpty)
@@ -74,10 +85,10 @@ class WeeklyPlanRemoteDataSourceImpl implements WeeklyPlanRemoteDataSource {
                 .filter('name', 'in', doctorNames);
 
             for (var visit in visits) {
-              // بنجيب أول عنصر يحقق الشرط، ولو مفيش بيرجع null تلقائياً من غير مشاكل Types
+ 
               final docInfo = doctorsData.cast<Map<String, dynamic>>().firstWhere(
                     (d) => d['name'] == visit.doctor,
-                orElse: () => <String, dynamic>{}, // نرجع Map فاضية بدل Null
+                orElse: () => <String, dynamic>{}, 
               );
 
               if (docInfo.isNotEmpty) {
@@ -91,18 +102,18 @@ class WeeklyPlanRemoteDataSourceImpl implements WeeklyPlanRemoteDataSource {
           }
         }
 
-        // 3. تحديث الكاش بالبيانات الكاملة (بما فيها اللوكيشن)
+  
         await _saveVisitsToCache(visits);
 
         return visits;
       } catch (e) {
-        debugPrint("❌ Critical Error in getVisitsWithCache: $e");
+        debugPrint("Critical Error in getVisitsWithCache: $e");
         return [];
       }
     });
   }
 
-  // ميثود الكاش خليتها Private ومنظمة أكتر
+  
   Future<void> _saveVisitsToCache(List<VisitModel> visits) async {
     try {
       var box = Hive.box<VisitModel>('weekly_visits_box');
@@ -112,7 +123,7 @@ class WeeklyPlanRemoteDataSourceImpl implements WeeklyPlanRemoteDataSource {
       await box.addAll(visits);
 
       await settingsBox.put('last_sync_date', DateTime.now().millisecondsSinceEpoch);
-      debugPrint("💾 Cache Updated & 5-Day Timer Started!");
+      debugPrint("Cache Updated & 5-Day Timer Started!");
     } catch (e) {
       debugPrint("Error saving to Hive: $e");
     }

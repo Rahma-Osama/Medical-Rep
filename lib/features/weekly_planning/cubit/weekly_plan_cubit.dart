@@ -186,29 +186,26 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
     _emitUpdatedState();
   }
 
-  Future<void> addVisitToDay() async {
-    if (_tempVisit.doctor == null ||
-        _tempVisit.brick == null ||
-        _tempVisit.doctor!.isEmpty) {
-      _emitUpdatedState(error: "Please select Brick and Doctor first");
-      return;
-    }
+Future<void> addVisitToDay() async {
+    if (_tempVisit.doctor == null || _tempVisit.brick == null) return;
 
     final currentDayVisits = _weeklyData[selectedDayIndex]!;
-    bool isDuplicate =
-        currentDayVisits.any((v) => v.doctor == _tempVisit.doctor);
+    
+    // بنشوف هل الدكتور ده موجود في القائمة الحالية؟
+    int existingIndex = currentDayVisits.indexWhere((v) => v.doctor == _tempVisit.doctor);
 
-    if (isDuplicate) {
-      _emitUpdatedState(error: "هذا الدكتور مضاف بالفعل في جدول اليوم!");
-      return;
+    if (existingIndex != -1) {
+      // ✅ لو موجود: بنحدثه في مكانه وبنخلي الـ ID القديم زي ما هو
+      // وده اللي هيخلي السيرفر يعمل Update مش Insert
+      currentDayVisits[existingIndex] = _tempVisit;
+    } else {
+      // لو مش موجود: بنضيفه كزيارة جديدة
+      _weeklyData[selectedDayIndex]!.add(_tempVisit);
     }
 
-    _weeklyData[selectedDayIndex]!.add(_tempVisit);
-    _tempVisit =
-        VisitEntity(shift: "AM", type: "Single", brick: null, doctor: null);
+    _tempVisit = VisitEntity(shift: "AM", type: "Single", brick: null, doctor: null);
     _emitUpdatedState();
   }
-
   void removeVisitFromDay(int visitIndex) {
     if (_weeklyData[selectedDayIndex]!.isNotEmpty) {
       _weeklyData[selectedDayIndex]!.removeAt(visitIndex);
@@ -255,6 +252,21 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
       error: error,
     ));
   }
+  // جوه كلاس WeeklyPlanCubit
+void forceEnableSubmission() {
+  // بنعدل المتغير الأصلي اللي شايل القيمة
+  _isSuccessfullyUploaded = false; 
+
+  // بنبعت الحالة الجديدة عشان الـ UI يحس بالتغيير ويفتح الزرار
+  if (state is WeeklyPlanUpdated) {
+    final currentState = state as WeeklyPlanUpdated;
+    emit(WeeklyPlanUpdated(
+      weeklyData: currentState.weeklyData,
+      selectedDayIndex: currentState.selectedDayIndex,
+      tempVisit: currentState.tempVisit,
+    ));
+  }
+}
 }
 
 extension VisitEntityCopy on VisitEntity {
@@ -277,4 +289,5 @@ extension VisitEntityCopy on VisitEntity {
       dayName: dayName ?? this.dayName,
     );
   }
+  
 }

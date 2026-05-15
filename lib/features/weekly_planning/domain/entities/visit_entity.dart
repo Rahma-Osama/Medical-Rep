@@ -1,4 +1,5 @@
 class VisitEntity {
+  final String? visitId; 
   final String? brick;
   final String? doctor;
   final String shift;
@@ -8,6 +9,7 @@ class VisitEntity {
   final String? dayName;
 
   VisitEntity({
+    this.visitId, 
     this.brick,
     this.doctor,
     this.shift = "AM",
@@ -17,10 +19,11 @@ class VisitEntity {
     this.dayName,
   });
 
-bool get isValid => doctor != null && doctor!.isNotEmpty && brick != null;
+  bool get isValid => doctor != null && doctor!.isNotEmpty && brick != null;
 
-  // دالة ضرورية لتحديث القيم في الـ Cubit
+ 
   VisitEntity copyWith({
+    String? visitId,
     String? brick,
     String? doctor,
     String? shift,
@@ -30,6 +33,7 @@ bool get isValid => doctor != null && doctor!.isNotEmpty && brick != null;
     String? dayName,
   }) {
     return VisitEntity(
+      visitId: visitId ?? this.visitId, // 🔹 مهم جداً عشان الـ ID ميفقدش أثناء التعديل
       brick: brick ?? this.brick,
       doctor: doctor ?? this.doctor,
       shift: shift ?? this.shift,
