@@ -8,6 +8,7 @@ import 'package:medical_rep/core/widgets/custom_app_bar.dart';
 import 'package:medical_rep/features/visit_flow/domain/usecases/validate_location_usecase.dart';
 import 'package:medical_rep/features/visit_flow/presentation/pages/active_visit_screen.dart';
 import 'package:medical_rep/features/weekly_planning/data/data%20source/weekly_plan_remote_data_source.dart';
+import 'package:medical_rep/features/weekly_planning/data/model/visit_model.dart';
 import 'package:medical_rep/features/weekly_planning/views/widgets/cutom_plan_status_card.dart';
 import 'package:medical_rep/features/weekly_planning/cubit/weekly_plan_cubit.dart';
 
@@ -95,22 +96,29 @@ class _WeeklyPlanningBody extends StatelessWidget {
                             Color statusColor = currentStatus.toLowerCase() == 'approved' 
                                 ? Colors.green : currentStatus.toLowerCase() == 'rejected' 
                                 ? Colors.red : Colors.orange;
-
+bool canStart = currentStatus.toLowerCase() == 'approved';
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 12),
                               child: CutomPlanStatusCard(
-                                day: visit.dayName ?? "No Day", 
-                                date: visit.date ?? "No Date",
-                                doctorName: visit.doctor ?? "Unknown Doctor",
-                                specialty: visit.brick ?? "No Specialty",
-                                shift: visit.shift,
-                                clinicName: "Clinic",
-                                location: visit.brick ?? "No Location",
-                                status: currentStatus, 
-                                color: statusColor, 
-                                icon: currentStatus.toLowerCase() == 'approved' 
-                                    ? Icons.check_circle_rounded : Icons.access_time_filled_rounded, 
-                                onStartVisit: () {},
+        day: visit.dayName ?? "No Day",
+        date: visit.date ?? "No Date",
+        doctorName: visit.doctor ?? "Unknown Doctor",
+        specialty: visit.brick ?? "No Specialty",
+        shift: visit.shift ?? "Morning", // تأكدي إنها مش Null
+        clinicName: "Clinic",
+        location: visit.brick ?? "No Location",
+        status: currentStatus,
+        color: statusColor,
+        icon: currentStatus.toLowerCase() == 'approved'
+            ? Icons.check_circle_rounded
+            : Icons.access_time_filled_rounded,
+        
+        // 🔹 هنا التعديل المهم:
+        showStartVisitButton: canStart, 
+        onStartVisit: () {
+           print("Starting visit for ${visit.doctor}");
+           // هنا هتفتحي صفحة تفاصيل الزيارة أو تبدأي الـ Location Tracking
+        },
                               ),
                             );
                           },
