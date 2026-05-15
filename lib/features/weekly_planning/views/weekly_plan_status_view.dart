@@ -96,7 +96,7 @@ class _WeeklyPlanningBody extends StatelessWidget {
                             Color statusColor = currentStatus.toLowerCase() == 'approved' 
                                 ? Colors.green : currentStatus.toLowerCase() == 'rejected' 
                                 ? Colors.red : Colors.orange;
-bool canStart = currentStatus.toLowerCase() == 'approved';
+
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 12),
                               child: CutomPlanStatusCard(
@@ -114,11 +114,7 @@ bool canStart = currentStatus.toLowerCase() == 'approved';
             : Icons.access_time_filled_rounded,
         
         // 🔹 هنا التعديل المهم:
-        showStartVisitButton: canStart, 
-        onStartVisit: () {
-           print("Starting visit for ${visit.doctor}");
-  
-        },
+     
                               ),
                             );
                           },
