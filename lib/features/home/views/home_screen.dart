@@ -10,6 +10,7 @@ import 'package:medical_rep/features/home/views/widgets/home_recent_visits_secti
 import 'package:medical_rep/features/home/views/widgets/home_services_section.dart';
 import 'package:medical_rep/features/home/views/widgets/home_stats_row.dart';
 import 'package:medical_rep/features/profile/views/profile_screen.dart';
+import 'package:medical_rep/features/visit_flow/presentation/pages/pending_visits_screen.dart';
 import 'package:medical_rep/features/weekly_planning/views/create_weekly_plan_view.dart';
 import 'package:medical_rep/features/weekly_planning/views/weekly_plan_status_view.dart';
 
@@ -31,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadDashboard();
   }
+
 
   Future<void> _loadDashboard() async {
     setState(() {
@@ -191,7 +193,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       // عند الضغط على Weekly Planning من الخدمات يفتح صفحة الإنشاء
                       setState(() => _navIndex = 2);
                     },
-                    onDrafts: () => setState(() => _navIndex = 1),
+                    onDrafts: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context)=>const PendingVisitsScreen()));
+                    },
                   ),
                   const SizedBox(height: 28),
                   HomeRecentVisitsSection(

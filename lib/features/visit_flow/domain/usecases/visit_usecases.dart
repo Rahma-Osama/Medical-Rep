@@ -7,7 +7,6 @@ class VerifyVisitLocationUseCase {
   final VisitRepository _repository;
   const VerifyVisitLocationUseCase(this._repository);
 
-  // حذفنا AppFailure لأن الـ Result بياخد نوع واحد فقط
   Future<Result<bool>> call(String location) =>
       _repository.verifyVisitLocation(location);
 }
@@ -30,10 +29,12 @@ class SubmitVisitFeedbackUseCase {
       VisitFeedbackEntity feedback, {
         required String doctorName,
         required String clinicName,
+        required String targetProduct
       }) =>
       _repository.submitVisitFeedback(
         feedback,
         doctorName: doctorName,
         clinicName: clinicName,
+        targetProduct: targetProduct
       );
 }

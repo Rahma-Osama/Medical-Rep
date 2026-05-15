@@ -11,10 +11,11 @@ class SubmitVisitFeedbackUseCase {
       VisitFeedbackEntity feedback, {
         required String doctorName,
         required String clinicName,
+        required String targetProduct
       }) =>
       _repository.submitVisitFeedback(
         feedback,
         doctorName: doctorName,
-        clinicName: clinicName,
+        clinicName: clinicName, targetProduct: targetProduct,
       );
 }

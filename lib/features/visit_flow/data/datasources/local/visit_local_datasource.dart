@@ -1,19 +1,17 @@
 import 'package:hive/hive.dart';
 import 'package:medical_rep/features/visit_flow/data/datasources/local/hive_adapters/pending_feedback_hive_model.dart';
 import 'package:medical_rep/features/visit_flow/data/models/visit_data_models.dart';
-import 'package:medical_rep/features/visit_flow/domain/entities/visit_feedback.dart';
 
 abstract class VisitLocalDataSource {
   Future<void> savePendingFeedback(
       VisitFeedbackModel feedback, {
         required String doctorName,
         required String clinicName,
+        required String targetProduct,
+        DateTime? offlineEndTime,
       });
-
   Future<List<PendingFeedbackHiveModel>> getPendingFeedbacks();
-
   Future<void> markAsSynced(String visitId);
-
   Future<void> deleteSynced();
 }
 
@@ -28,6 +26,8 @@ class VisitLocalDataSourceImpl implements VisitLocalDataSource {
       VisitFeedbackModel feedback, {
         required String doctorName,
         required String clinicName,
+        required String targetProduct,
+        DateTime? offlineEndTime,
       }) async {
     final box = await _box;
     final hiveModel = PendingFeedbackHiveModel(
@@ -36,20 +36,18 @@ class VisitLocalDataSourceImpl implements VisitLocalDataSource {
       sampleGiven: feedback.sampleGiven,
       followUpRequired: feedback.followUpRequired,
       notes: feedback.notes,
-      attachmentPaths: feedback.attachmentPaths,
       submittedAt: feedback.submittedAt,
       doctorName: doctorName,
       clinicName: clinicName,
+      targetProduct: targetProduct,
+      endTime: offlineEndTime,
     );
-    // key = visitId عشان نتجنب التكرار
     await box.put(feedback.visitId, hiveModel);
   }
 
   @override
-  Future<List<PendingFeedbackHiveModel>> getPendingFeedbacks() async {
-    final box = await _box;
-    return box.values.where((e) => !e.isSynced).toList();
-  }
+  Future<List<PendingFeedbackHiveModel>> getPendingFeedbacks() async =>
+      (await _box).values.where((e) => !e.isSynced).toList();
 
   @override
   Future<void> markAsSynced(String visitId) async {
@@ -57,16 +55,14 @@ class VisitLocalDataSourceImpl implements VisitLocalDataSource {
     final entry = box.get(visitId);
     if (entry != null) {
       entry.isSynced = true;
-      await entry.save(); // HiveObject.save() يحدث نفسه
+      await entry.save();
     }
   }
 
   @override
   Future<void> deleteSynced() async {
     final box = await _box;
-    final syncedKeys = box.keys
-        .where((k) => box.get(k)?.isSynced == true)
-        .toList();
+    final syncedKeys = box.keys.where((k) => box.get(k)?.isSynced == true).toList();
     await box.deleteAll(syncedKeys);
   }
 }
