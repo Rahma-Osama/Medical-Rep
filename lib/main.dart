@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:medical_rep/features/admin/view/admin_page.dart';
@@ -28,11 +27,10 @@ void main() async {
   if (!Hive.isAdapterRegistered(0)) {
     Hive.registerAdapter(VisitModelAdapter());
   }
-  if (!Hive.isAdapterRegistered(10)) {
+
+  if (!Hive.isAdapterRegistered(2)) {
     Hive.registerAdapter(PendingFeedbackHiveModelAdapter());
   }
-
-
   if (!Hive.isBoxOpen('weekly_visits_box')) {
     await Hive.openBox<VisitModel>('weekly_visits_box');
   }
@@ -40,7 +38,9 @@ void main() async {
   if (!Hive.isBoxOpen('settings')) {
     await Hive.openBox('settings');
   }
-
+  if (!Hive.isBoxOpen('pending_feedbacks')) {
+    await Hive.openBox<PendingFeedbackHiveModel>('pending_feedbacks');
+  }
   if (!Hive.isBoxOpen('weekly_plan_box')) {
     await Hive.openBox('weekly_plan_box');
   }

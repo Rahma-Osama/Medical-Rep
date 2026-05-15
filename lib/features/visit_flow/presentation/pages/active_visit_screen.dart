@@ -73,7 +73,7 @@ class _ActiveVisitView extends StatelessWidget {
                 MaterialPageRoute(
                   builder: (_) => VisitFeedbackScreen(
                     visitId: visit.visitId,
-                    prefillSampleGiven: cubit.state.sampleGiven, doctorName:visit.doctorName, clinicName: visit.clinicName,
+                    prefillSampleGiven: cubit.state.sampleGiven, doctorName:visit.doctorName, clinicName: visit.clinicName, targetProduct: visit.targetProduct,
                   ),
                 ),
               );

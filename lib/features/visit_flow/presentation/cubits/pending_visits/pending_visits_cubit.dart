@@ -32,7 +32,7 @@ class PendingVisitsCubit extends Cubit<PendingVisitsState> {
     emit(const PendingVisitsSyncing());
 
     try {
-      await _syncService.syncPending();
+      await _syncService.syncPendingVisits();
       await loadPending();
     } catch (e) {
       emit(PendingVisitsError(e.toString()));

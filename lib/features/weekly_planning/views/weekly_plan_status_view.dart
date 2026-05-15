@@ -141,6 +141,7 @@ class _WeeklyPlanningBody extends StatelessWidget {
     try {
       final position = await locationService.getCurrentPosition();
       debugPrint("Use This Data To Doc Locatin for test");
+      debugPrint(visit.toJson().toString());
       debugPrint(position.longitude.toString());
       debugPrint(position.latitude.toString());
 
@@ -164,7 +165,7 @@ class _WeeklyPlanningBody extends StatelessWidget {
 
       // 4. إنشاء موديل الزيارة النشطة والانتقال للشاشة التالية
       final activeVisit = visit_flow.VisitModel(
-        visitId: DateTime.now().millisecondsSinceEpoch.toString(),
+        visitId: visit.visitId??'',
         doctorName: visit.doctor ?? "Unknown Doctor",
         specialty: visit.specialty ?? "General",
         clinicName: visit.clinicName ?? "Clinic",
@@ -187,7 +188,7 @@ class _WeeklyPlanningBody extends StatelessWidget {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'approved':
+      case 'approved' || 'done':
         return Colors.green;
       case 'rejected':
         return Colors.red;

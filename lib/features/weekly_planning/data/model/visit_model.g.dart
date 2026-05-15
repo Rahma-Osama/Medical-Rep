@@ -17,6 +17,7 @@ class VisitModelAdapter extends TypeAdapter<VisitModel> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return VisitModel(
+      visitId: fields[13] as String?,
       brick: fields[0] as String?,
       doctor: fields[1] as String?,
       shift: fields[2] as String,
@@ -36,7 +37,7 @@ class VisitModelAdapter extends TypeAdapter<VisitModel> {
   @override
   void write(BinaryWriter writer, VisitModel obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.brick)
       ..writeByte(1)
@@ -62,7 +63,9 @@ class VisitModelAdapter extends TypeAdapter<VisitModel> {
       ..writeByte(11)
       ..write(obj.long)
       ..writeByte(12)
-      ..write(obj.targetProduct);
+      ..write(obj.targetProduct)
+      ..writeByte(13)
+      ..write(obj.visitId);
   }
 
   @override

@@ -6,8 +6,8 @@ class VisitFeedbackEntity {
   final bool sampleGiven;
   final bool followUpRequired;
   final String notes;
-  final List<String> attachmentPaths;
   final DateTime submittedAt;
+  final String targetProduct;
 
   const VisitFeedbackEntity({
     required this.visitId,
@@ -15,7 +15,7 @@ class VisitFeedbackEntity {
     required this.sampleGiven,
     required this.followUpRequired,
     required this.notes,
-    required this.attachmentPaths,
     required this.submittedAt,
+    required this.targetProduct
   });
 }

@@ -21,7 +21,7 @@ class VisitModel extends VisitEntity {
   final bool isActive;
 
   factory VisitModel.fromJson(Map<String, dynamic> json) => VisitModel(
-    visitId: json['visit_id'] as String,
+    visitId: json['id'] as String,
     doctorName: json['doctor_name'] as String,
     specialty: json['specialty'] as String,
     clinicName: json['clinic_name'] as String,
@@ -36,7 +36,7 @@ class VisitModel extends VisitEntity {
   );
 
   Map<String, dynamic> toJson() => {
-    'visit_id': visitId,
+    'id': visitId,
     'doctor_name': doctorName,
     'specialty': specialty,
     'clinic_name': clinicName,
@@ -81,8 +81,8 @@ class VisitFeedbackModel extends VisitFeedbackEntity {
     required super.sampleGiven,
     required super.followUpRequired,
     required super.notes,
-    required super.attachmentPaths,
     required super.submittedAt,
+    required super.targetProduct,
   });
 
   factory VisitFeedbackModel.fromEntity(VisitFeedbackEntity entity) =>
@@ -92,17 +92,15 @@ class VisitFeedbackModel extends VisitFeedbackEntity {
         sampleGiven: entity.sampleGiven,
         followUpRequired: entity.followUpRequired,
         notes: entity.notes,
-        attachmentPaths: entity.attachmentPaths,
-        submittedAt: entity.submittedAt,
+        submittedAt: entity.submittedAt, targetProduct: entity.targetProduct,
       );
 
   Map<String, dynamic> toJson() => {
-    'visit_id': visitId,
+    'id': visitId,
     'interest_level': interestLevel.name,
     'sample_given': sampleGiven,
     'follow_up_required': followUpRequired,
     'notes': notes,
-    'attachment_paths': attachmentPaths,
     'submitted_at': submittedAt.toIso8601String(),
   };
 }

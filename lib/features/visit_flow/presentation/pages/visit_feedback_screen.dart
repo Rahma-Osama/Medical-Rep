@@ -18,6 +18,7 @@ class VisitFeedbackScreen extends StatelessWidget {
   final String doctorName;
   final String clinicName;
   final bool prefillSampleGiven;
+  final String targetProduct;
 
   const VisitFeedbackScreen({
     super.key,
@@ -25,6 +26,7 @@ class VisitFeedbackScreen extends StatelessWidget {
     required this.prefillSampleGiven,
     required this.doctorName,
     required this.clinicName,
+    required this.targetProduct,
   });
 
   @override
@@ -38,12 +40,12 @@ class VisitFeedbackScreen extends StatelessWidget {
         final repository = VisitRepositoryImpl(remoteDataSource, local, connectivity);
 
         return VisitFeedbackCubit(
-          // الآن سيتم التعرف على الـ UseCase بشكل صحيح لأنه مستورد من الملف الموحد
           submitVisitFeedback: SubmitVisitFeedbackUseCase(repository),
           visitId: visitId,
           prefillSampleGiven: prefillSampleGiven,
           doctorName: doctorName,
           clinicName: clinicName,
+          targetProduct: targetProduct,
         );
       },
       child: const _VisitFeedbackView(),

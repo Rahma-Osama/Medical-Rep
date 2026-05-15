@@ -11,6 +11,7 @@ abstract class VisitRepository {
       VisitFeedbackEntity feedback, {
         required String doctorName,
         required String clinicName,
+        required String targetProduct
       });
 
   Future<Result<List<PendingFeedbackEntity>>> getPendingFeedbacks();
