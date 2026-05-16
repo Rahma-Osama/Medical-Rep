@@ -41,7 +41,7 @@ class _WeeklyPlanningBody extends StatelessWidget {
       backgroundColor: AppColors.backgroundColor,
       body:  Stack(
         children: [
-          // 1️⃣ Stream يعمل في الخلفية لتحديث الكاش وربط اللوكيشن من جدول الدكاترة
+      
           StreamBuilder<List<weekly.VisitModel>>(
             stream: WeeklyPlanRemoteDataSourceImpl().getVisitsWithCache(),
             builder: (context, snapshot) {
@@ -52,10 +52,7 @@ class _WeeklyPlanningBody extends StatelessWidget {
         valueListenable: Hive.box('weekly_visits_box').listenable(),
         builder: (context, Box box, _) {
           
-          // ✅ التعديل السحري: تجميع زيارات الـ 5 أيام كلها في لستة واحدة
           List<VisitModel> allWeeklyVisits = [];
-
-          // بنلف على الـ 5 أيام (من 0 لـ 4) ونجمع الزيارات بأمان
           for (int i = 0; i < 5; i++) {
             final dynamic dayData = box.get(i);
             if (dayData != null) {
@@ -221,7 +218,7 @@ class _WeeklyPlanningBody extends StatelessWidget {
 
   Future<void> _handleStartVisit(BuildContext context, weekly.VisitModel visit) async {
     final locationService = LocationService();
-    final validator = ValidateLocationUseCase(radiusInMeters: 100);
+    final validator = ValidateLocationUseCase(radiusInMeters: 50000);
 
     try {
       final position = await locationService.getCurrentPosition();

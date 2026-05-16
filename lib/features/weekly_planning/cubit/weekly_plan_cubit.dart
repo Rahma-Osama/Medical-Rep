@@ -37,11 +37,12 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
 
   bool get isPlanAlreadySubmitted => _isSuccessfullyUploaded;
 
-void _initData() async {
+  void _initData() async {
     try {
       // 1. جلب المناطق
-      final fetchedBricks = await saveVisitUseCase.repository.getAreasFromSupabase();
-      allBricks = List<String>.from(fetchedBricks); 
+      final fetchedBricks =
+          await saveVisitUseCase.repository.getAreasFromSupabase();
+      allBricks = List<String>.from(fetchedBricks);
 
       // 2. التحقق من السيرفر وجلب الخطة
       final String? userId = Supabase.instance.client.auth.currentUser?.id;
@@ -57,15 +58,15 @@ void _initData() async {
         await resetPlan();
       } else {
         _isSuccessfullyUploaded = true;
-        
-      // جلب البيانات المحلية
+
+        // جلب البيانات المحلية
         final cachedPlan = await saveVisitUseCase.repository.getLocalPlan();
-        
+
         if (cachedPlan.isNotEmpty) {
           _weeklyData.clear();
-          
+
           final Map<int, List<VisitEntity>> sanitizedPlan = {};
-          
+
           // ✅ الحل القاطع: بنتعامل مع الـ value على إنها List دايماً تماشياً مع الـ Repository
           cachedPlan.forEach((key, value) {
             if (value is List) {
@@ -83,7 +84,8 @@ void _initData() async {
           }
 
           _weeklyData.addAll(_normalizeCachedPlanDates(sanitizedPlan));
-          print("✅ Cached Plan Loaded Safely: ${_weeklyData.length} days processed.");
+          print(
+              "✅ Cached Plan Loaded Safely: ${_weeklyData.length} days processed.");
         }
       }
       _emitUpdatedState();
@@ -96,6 +98,21 @@ void _initData() async {
   Future<void> submitPlan() async {
     if (state is WeeklyPlanLoading) return;
 
+    // ✅ الحل السحري: بنلف ونعدل باستخدام الـ copyWith الأصلية بتاعة الـ Entity
+    _weeklyData.forEach((dayIndex, visitsList) {
+      if (visitsList != null) {
+        for (int i = 0; i < visitsList.length; i++) {
+          if (visitsList[i].status == 'rejected') {
+            // استبدال الكائن المرفوض بكائن جديد حالته معلقة (pending)
+            visitsList[i] = visitsList[i].copyWith(
+              status: 'pending',
+              managerNotes: null, // تصفير ملاحظات المدير القديمة
+            );
+          }
+        }
+      }
+    });
+
     emit(WeeklyPlanLoading(
       weeklyData: _weeklyData,
       selectedDayIndex: selectedDayIndex,
@@ -104,6 +121,7 @@ void _initData() async {
     ));
 
     try {
+      // الـ UseCase دلوقتي هياخد الداتا المحدثة أوتوماتيك ويرفعها للـ Repository ثم لـ Supabase و Hive
       await saveVisitUseCase.repository.saveWeeklyPlan(_weeklyData);
 
       _isSuccessfullyUploaded = true;
@@ -134,13 +152,13 @@ void _initData() async {
       ));
     }
   }
-// 1️⃣ تأمين دالة الـ resetPlan بالـ await
+
   Future<void> resetPlan() async {
     // ✅ الفحص الذكي: لو الصندوق مش مفتوح بالكامل استناه يفتح فوراً ومنع الكراش
     final box = Hive.isBoxOpen('weekly_visits_box')
         ? Hive.box('weekly_visits_box')
         : await Hive.openBox('weekly_visits_box');
-        
+
     await box.clear();
 
     _weeklyData.forEach((key, value) => value.clear());
@@ -152,13 +170,15 @@ void _initData() async {
   }
 
   // 2️⃣ تأمين دالة الـ clearCacheIfExpired بالـ await
-  void clearCacheIfExpired() async { // ضيفنا async هنا
-    if (await _isCacheExpired()) { // ضيفنا await هنا
+  void clearCacheIfExpired() async {
+    // ضيفنا async هنا
+    if (await _isCacheExpired()) {
+      // ضيفنا await هنا
       // ✅ تأمين الصندوق بـ await فوراً
       final box = Hive.isBoxOpen('weekly_visits_box')
           ? Hive.box('weekly_visits_box')
           : await Hive.openBox('weekly_visits_box');
-          
+
       await box.clear();
 
       emit(WeeklyPlanInitial());
@@ -182,6 +202,7 @@ void _initData() async {
 
     return differenceInDays >= 5;
   }
+
   void tempUpdateField(String field, dynamic value) async {
     _tempVisit = _tempVisit.copyWith(
       brick: field == "brick" ? value : _tempVisit.brick,
@@ -205,8 +226,7 @@ void _initData() async {
     _emitUpdatedState();
   }
 
-  String _getDateForDay(int index) =>
-      WorkWeekDates.isoDateForPlanDay(index);
+  String _getDateForDay(int index) => WorkWeekDates.isoDateForPlanDay(index);
 
   Map<int, List<VisitEntity>> _normalizeCachedPlanDates(
     Map<int, List<VisitEntity>> plan,
@@ -244,8 +264,9 @@ void _initData() async {
     if (_tempVisit.doctor == null || _tempVisit.brick == null) return;
 
     final currentDayVisits = _weeklyData[selectedDayIndex]!;
-    
-    int existingIndex = currentDayVisits.indexWhere((v) => v.doctor == _tempVisit.doctor);
+
+    int existingIndex =
+        currentDayVisits.indexWhere((v) => v.doctor == _tempVisit.doctor);
 
     final visitToAdd = _tempVisit.copyWith(
       date: _getDateForDay(selectedDayIndex),
@@ -258,7 +279,8 @@ void _initData() async {
       currentDayVisits.add(visitToAdd);
     }
 
-    _tempVisit = VisitEntity(shift: "AM", type: "Single", brick: null, doctor: null);
+    _tempVisit =
+        VisitEntity(shift: "AM", type: "Single", brick: null, doctor: null);
     _emitUpdatedState();
   }
 
@@ -281,8 +303,8 @@ void _initData() async {
 
     try {
       await saveVisitUseCase.repository.syncPlanStatusWithServer();
-      
-      // ✅ التعديل هنا: ضيفنا await لأن الدالة بقت Future ومضمونة
+
+   
       final updatedPlan = await saveVisitUseCase.repository.getLocalPlan();
 
       _weeklyData.clear();
@@ -290,7 +312,8 @@ void _initData() async {
 
       _emitUpdatedState();
     } catch (e) {
-      print(" Error in refreshPlanStatus: $e"); // عشان لو فيه حاجة تانية تبان في الـ Log
+      print(
+          " Error in refreshPlanStatus: $e"); 
       _emitUpdatedState(error: "فشلت عملية تحديث البيانات");
     }
   }
@@ -305,7 +328,6 @@ void _initData() async {
   }
 
   void _emitUpdatedState({String? error}) {
-    // ✅ حماية إضافية ضد الـ Bad State قبل أي emit
     if (isClosed) return;
 
     emit(WeeklyPlanUpdated(
@@ -320,7 +342,7 @@ void _initData() async {
   void forceEnableSubmission() {
     if (isClosed) return;
 
-    _isSuccessfullyUploaded = false; 
+    _isSuccessfullyUploaded = false;
 
     if (state is WeeklyPlanUpdated) {
       final currentState = state as WeeklyPlanUpdated;
@@ -333,24 +355,4 @@ void _initData() async {
   }
 }
 
-extension VisitEntityCopy on VisitEntity {
-  VisitEntity copyWith({
-    String? brick,
-    String? doctor,
-    String? shift,
-    String? type,
-    String? notes,
-    String? date,
-    String? dayName,
-  }) {
-    return VisitEntity(
-      brick: brick ?? this.brick,
-      doctor: doctor ?? this.doctor,
-      shift: shift ?? this.shift,
-      type: type ?? this.type,
-      notes: notes ?? this.notes,
-      date: date ?? this.date,
-      dayName: dayName ?? this.dayName,
-    );
-  }
-}
+

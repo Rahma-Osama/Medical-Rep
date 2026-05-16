@@ -46,9 +46,8 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
   }
 
   @override
-  // ✅ التعديل الأول: تحويل الدالة لـ Future وآمنة تماماً مع الـ Hive
+
   Future<Map<int, List<VisitEntity>>> getLocalPlan() async {
-    // 🔹 نضمن فتح الصندوق الأول قبل ما نطلب الكاش من الـ Data Source
     if (!Hive.isBoxOpen('weekly_visits_box')) {
       await Hive.openBox('weekly_visits_box');
     }
@@ -79,13 +78,13 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
     });
   }
 
-  // ✅ التعديل الثاني: تأمين دالة الحفظ وضمان فتح البوكس قبل التعامل مع الـ Data Source
+
   Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
     try {
       final String? userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) throw Exception("User not logged in!");
 
-      // 🔹 تأمين الصندوق قبل بدء اللوب وعمليات الحفظ المحلي
+  
       if (!Hive.isBoxOpen('weekly_visits_box')) {
         await Hive.openBox('weekly_visits_box');
       }

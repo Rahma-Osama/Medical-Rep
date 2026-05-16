@@ -7,6 +7,9 @@ class VisitEntity {
   final String? notes;
   final String? date;
   final String? dayName;
+  // ✅ الأعمدة الجديدة اللي كانت ناقصة جوه الـ Entity:
+    String status; 
+  final String? managerNotes;
 
   VisitEntity({
     this.visitId, 
@@ -17,11 +20,12 @@ class VisitEntity {
     this.notes = "",
     this.date,
     this.dayName,
+    this.status = "pending", // ✅ القيمة الافتراضية لأي زيارة جديدة هي pending
+    this.managerNotes,
   });
 
   bool get isValid => doctor != null && doctor!.isNotEmpty && brick != null;
 
- 
   VisitEntity copyWith({
     String? visitId,
     String? brick,
@@ -31,9 +35,11 @@ class VisitEntity {
     String? notes,
     String? date,
     String? dayName,
+    String? status,       // ✅ إضافة الـ status في الـ copyWith
+    String? managerNotes, // ✅ إضافة الـ managerNotes في الـ copyWith
   }) {
     return VisitEntity(
-      visitId: visitId ?? this.visitId, // 🔹 مهم جداً عشان الـ ID ميفقدش أثناء التعديل
+      visitId: visitId ?? this.visitId, 
       brick: brick ?? this.brick,
       doctor: doctor ?? this.doctor,
       shift: shift ?? this.shift,
@@ -41,6 +47,8 @@ class VisitEntity {
       notes: notes ?? this.notes,
       date: date ?? this.date,
       dayName: dayName ?? this.dayName,
+      status: status ?? this.status,             // ✅ تمرير القيمة الجديدة أو الحفاظ على القديمة
+      managerNotes: managerNotes ?? this.managerNotes, // ✅ تمرير القيمة الجديدة أو الحفاظ على القديمة
     );
   }
 }

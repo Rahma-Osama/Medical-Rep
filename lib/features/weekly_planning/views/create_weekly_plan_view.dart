@@ -29,7 +29,7 @@ class CreatePlanScreen extends StatelessWidget {
         }
         return cubit;
       },
-      child: _CreatePlanBody(initialVisit: initialVisit), 
+      child: _CreatePlanBody(initialVisit: initialVisit),
     );
   }
 }
@@ -48,7 +48,7 @@ class _CreatePlanBody extends StatelessWidget {
             title: "Full Plan Submitted!",
             message: "Plan Submitted Successfully! Waiting for approval.",
           );
-          // ✅ النقل للشاشة الجديدة بنجاح وبدون تعليق
+       
           Navigator.push(
             context,
             MaterialPageRoute<void>(
@@ -62,13 +62,15 @@ class _CreatePlanBody extends StatelessWidget {
       builder: (context, state) {
         final cubit = context.read<WeeklyPlanCubit>();
 
-        // ❌ شيلنا الشرط القديم اللي كان بيعمل قفلة وسيركل أفاتار بيضاء
-        // ✅ الحل الجديد: بنفحص لو الحالة لسه مفيهاش داتا خالص (الـ Initial) يعرض لودينج، غير كدة يعرض الشاشة فوراً
         if (state is WeeklyPlanInitial) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+              body: Center(child: CircularProgressIndicator()));
+        }
+        Map<int, List<VisitEntity>> currentData = {};
+        if (state is WeeklyPlanUpdated) {
+          currentData = state.weeklyData;
         }
 
-        // جلب البيانات بأمان من أي حالة شايلة الـ weeklyData والـ selectedDayIndex
         final weeklyData = state.weeklyData;
         final selectedDayIndex = state.selectedDayIndex;
         final tempVisit = state.tempVisit;
@@ -103,7 +105,8 @@ class _CreatePlanBody extends StatelessWidget {
                               icon: Icons.location_city_outlined,
                               items: cubit.allBricks,
                               value: tempVisit.brick,
-                              onChanged: (val) => cubit.tempUpdateField("brick", val),
+                              onChanged: (val) =>
+                                  cubit.tempUpdateField("brick", val),
                             ),
                             const Divider(height: 30),
                             CustomDropdownWidget(
@@ -111,21 +114,24 @@ class _CreatePlanBody extends StatelessWidget {
                               icon: Icons.person_search_outlined,
                               items: cubit.filteredDoctors,
                               value: tempVisit.doctor,
-                              onChanged: (val) => cubit.tempUpdateField("doctor", val),
+                              onChanged: (val) =>
+                                  cubit.tempUpdateField("doctor", val),
                             ),
                             const SizedBox(height: 20),
                             SegmentedControllWidget(
                               label: "Select Shift",
                               option: const ["AM", "PM"],
                               selected: tempVisit.shift,
-                              onSelected: (val) => cubit.tempUpdateField("shift", val!),
+                              onSelected: (val) =>
+                                  cubit.tempUpdateField("shift", val!),
                             ),
                             const SizedBox(height: 20),
                             SegmentedControllWidget(
                               label: "Visit Type",
                               option: const ["Single", "Double"],
                               selected: tempVisit.type,
-                              onSelected: (val) => cubit.tempUpdateField("type", val!),
+                              onSelected: (val) =>
+                                  cubit.tempUpdateField("type", val!),
                             ),
                             const SizedBox(height: 30),
                             CustomElevatedButton(
@@ -142,17 +148,18 @@ class _CreatePlanBody extends StatelessWidget {
                         _buildVisitsList(currentDayVisits, cubit),
                       ],
                       const SizedBox(height: 30),
-                      
-                      // 🔹 هنا بقى إدارة زرار الـ Submit والـ Loading الذكي بدون كراش الشاشة
                       state is WeeklyPlanLoading
                           ? const Center(child: CircularProgressIndicator())
                           : CustomElevatedButton(
-                              text: (cubit.isPlanAlreadySubmitted && initialVisit == null) 
-                                  ? "Plan Submitted" 
+                              text: (cubit.isPlanAlreadySubmitted &&
+                                      initialVisit == null)
+                                  ? "Plan Submitted"
                                   : "Submit Full Plan",
-                              onPressed: (cubit.isPlanAlreadySubmitted && initialVisit == null) || !cubit.isPlanComplete
-                                  ? null 
-                                  : () => cubit.submitPlan(), 
+                              onPressed: (cubit.isPlanAlreadySubmitted &&
+                                          initialVisit == null) ||
+                                      !cubit.isPlanComplete
+                                  ? null
+                                  : () => cubit.submitPlan(),
                             ),
                       const SizedBox(height: 50),
                     ],
@@ -181,10 +188,12 @@ class _CreatePlanBody extends StatelessWidget {
             side: BorderSide(color: Colors.grey.shade200),
           ),
           child: ListTile(
-            title: Text(visit.doctor ?? "Unknown Doctor", style: AppTextStyle.body),
+            title: Text(visit.doctor ?? "Unknown Doctor",
+                style: AppTextStyle.body),
             subtitle: Text("${visit.brick} | ${visit.shift}"),
             trailing: IconButton(
-              icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+              icon: const Icon(Icons.remove_circle_outline,
+                  color: Colors.redAccent),
               onPressed: () => cubit.removeVisitFromDay(index),
             ),
           ),
@@ -210,7 +219,8 @@ class _CreatePlanBody extends StatelessWidget {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: AppTextStyle.title.copyWith(color: AppColors.grayColor, fontSize: 16),
+      style:
+          AppTextStyle.title.copyWith(color: AppColors.grayColor, fontSize: 16),
     );
   }
 }
