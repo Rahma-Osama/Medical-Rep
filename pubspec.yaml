@@ -59,6 +59,14 @@ dev_dependencies:
   flutter_lints: 4.0.0
   hive_generator: ^2.0.1
   build_runner: ^2.4.8
+  flutter_launcher_icons: ^0.13.1 # 🌟 تم دمج الباكيدج هنا في مكانها الصحيح
+
+# 🌟 إعدادات تشغيل الأيقونة على المحاذاة الرئيسية للملف وبكامل تفاصيلها وكومنتاتها
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/app_icon.png" # مسار صورتك النظيفة
+  min_sdk_android: 21 # عشان تتوافق مع إصدارات الأندرويد الحديثة والـ Adaptive Icons
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -72,9 +80,9 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-#  assets:
-#  - assets/images/
-#  - assets/icons/
+  assets:
+    - assets/images/app_icon.png
+  #  - assets/icons/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
