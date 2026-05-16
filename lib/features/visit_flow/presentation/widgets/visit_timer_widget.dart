@@ -44,7 +44,8 @@ class VisitTimerWidget extends StatelessWidget {
               const SizedBox(height: 4),
 
               Text(
-                'Started at ${_formatStartTime(cubit.visit.startTime)}',
+                // ✅ تأمين الـ startTime لو جاي بـ null ناصب مكانه الوقت الحالي فوراً بدون كراش
+                'Started at ${_formatStartTime(cubit.visit.startTime ?? DateTime.now())}',
                 style: AppTextStyle.hint.copyWith(
                   color: AppColors.whiteColor.withOpacity(0.5),
                 ),

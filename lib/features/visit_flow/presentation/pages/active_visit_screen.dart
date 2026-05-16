@@ -4,13 +4,15 @@ import 'package:medical_rep/core/services/connectivity_service.dart';
 import 'package:medical_rep/core/utils/constants.dart';
 import 'package:medical_rep/features/visit_flow/data/datasources/local/visit_local_datasource.dart';
 import 'package:medical_rep/features/visit_flow/data/datasources/remote/visit_remote_datasource.dart';
-import 'package:medical_rep/features/visit_flow/data/models/visit_data_models.dart';
+
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/styles/app_text_style.dart';
 import 'package:medical_rep/core/widgets/custom_app_bar.dart';
 import 'package:medical_rep/core/error/failure_ui_extension.dart';
 import 'package:medical_rep/core/widgets/custom_snackbar_widget.dart';
+import 'package:medical_rep/features/visit_flow/data/models/visit_data_models.dart';
 import 'package:medical_rep/features/visit_flow/data/repoetries/visit_repo_impl.dart';
+import 'package:medical_rep/features/visit_flow/domain/entities/visit.dart';
 import 'package:medical_rep/features/visit_flow/domain/usecases/visit_usecases.dart';
 import 'package:medical_rep/features/visit_flow/presentation/cubits/active_visit/active_visit_cubit.dart';
 import 'package:medical_rep/features/visit_flow/presentation/cubits/active_visit/active_visit_state.dart';
@@ -22,7 +24,7 @@ import 'package:medical_rep/features/visit_flow/presentation/widgets/visit_timer
 
 
 class ActiveVisitScreen extends StatelessWidget {
-  final VisitModel visit;
+  final VisitEntity visit;
 
   const ActiveVisitScreen({super.key, required this.visit});
 
@@ -50,7 +52,7 @@ class ActiveVisitScreen extends StatelessWidget {
 }
 
 class _ActiveVisitView extends StatelessWidget {
-  final VisitModel visit;
+  final VisitEntity visit;
 
   const _ActiveVisitView({required this.visit});
 

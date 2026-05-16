@@ -20,21 +20,27 @@ class VisitModel extends VisitEntity {
   final DateTime? lastSeenTime;
   final bool isActive;
 
-  factory VisitModel.fromJson(Map<String, dynamic> json) => VisitModel(
-    visitId: json['id'] as String,
-    doctorName: json['doctor_name'] as String,
-    specialty: json['specialty'] as String,
-    clinicName: json['clinic_name'] as String,
-    location: json['location'] as String,
-    shift: json['shift'] as String,
-    targetProduct: json['target_product'] as String,
-    startTime: DateTime.parse(json['start_time'] as String),
+factory VisitModel.fromJson(Map<String, dynamic> json) => VisitModel(
+    visitId: (json['id'] ?? '') as String,
+    doctorName: (json['doctor_name'] ?? 'Unknown Doctor') as String,
+    
+    // ✅ تأمين الحقول اللي بتنزل null من السيرفر أو الكاش
+    specialty: (json['specialty'] ?? 'General') as String,
+    clinicName: (json['clinic_name'] ?? 'Clinic') as String,
+    location: (json['location'] ?? '0.0,0.0') as String,
+    
+    shift: (json['shift'] ?? 'AM') as String,
+    targetProduct: (json['target_product'] ?? 'Product') as String,
+    
+    startTime: json['start_time'] != null 
+        ? DateTime.parse(json['start_time'] as String) 
+        : DateTime.now(),
+        
     lastSeenTime: json['last_seen_time'] != null
-        ? DateTime.parse(json['last_seen_time'])
+        ? DateTime.parse(json['last_seen_time'] as String)
         : null,
     isActive: json['is_active'] ?? true,
   );
-
   Map<String, dynamic> toJson() => {
     'id': visitId,
     'doctor_name': doctorName,

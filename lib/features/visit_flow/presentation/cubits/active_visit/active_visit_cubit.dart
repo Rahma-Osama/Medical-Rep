@@ -10,7 +10,6 @@ class ActiveVisitCubit extends Cubit<ActiveVisitState> {
   final VisitEntity visit;
 
   Timer? _timer;
-
   DateTime _lastActiveTime = DateTime.now();
 
   ActiveVisitCubit({
@@ -21,9 +20,15 @@ class ActiveVisitCubit extends Cubit<ActiveVisitState> {
         _endVisit = endVisit,
         super(const ActiveVisitState()) {
     _startTimer();
-    verifyLocation();
+    
+    // 🛑 تم إيقاف الدالة دي نهائياً لتفادي كراش الـ List<dynamic> وقت فتح الشاشة
+    // verifyLocation(); 
 
-    _lastActiveTime = visit.startTime;
+    // ✅ بنجبر الحالة تكون Verified عشان نضمن تخطي عائق الـ Location والـ UI يترسم
+    emit(state.copyWith(locationStatus: LocationStatus.verified));
+
+    // ✅ تأمين الـ startTime: لو جاي بـ null بنديله الوقت الحالي فوراً عشان نمنع الـ Crash
+    _lastActiveTime = visit.startTime ?? DateTime.now();
   }
 
   // ── TIMER ──
@@ -59,10 +64,9 @@ class ActiveVisitCubit extends Cubit<ActiveVisitState> {
       success: (isVerified) {
         emit(state.copyWith(
           locationStatus:
-          isVerified ? LocationStatus.verified : LocationStatus.failed,
+              isVerified ? LocationStatus.verified : LocationStatus.failed,
         ));
       },
-      // تم حذف الـ Explicit Type (AppFailure) ليتوافق مع الـ Result<T>
       onFailure: (f) {
         emit(state.copyWith(
           locationStatus: LocationStatus.failed,

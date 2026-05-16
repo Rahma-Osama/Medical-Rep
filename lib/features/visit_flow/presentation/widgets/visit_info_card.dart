@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/styles/app_text_style.dart';
-import 'package:medical_rep/features/visit_flow/data/models/visit_data_models.dart';
+
+import 'package:medical_rep/features/visit_flow/domain/entities/visit.dart';
 
 class VisitInfoCard extends StatelessWidget {
-  final VisitModel visit;
+  final VisitEntity visit;
 
   const VisitInfoCard({super.key, required this.visit});
 
