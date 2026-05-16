@@ -88,7 +88,6 @@ class _WeeklyPlanningBody extends StatelessWidget {
                     children: [
                       const SizedBox(height: 15),
                       
-                      // الـ ListView بيعرض دلوقتي كل الزيارات المجمعة للأسبوع
                       ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),

@@ -49,7 +49,7 @@ class _CreatePlanBody extends StatelessWidget {
             message: "Plan Submitted Successfully! Waiting for approval.",
           );
           // ✅ النقل للشاشة الجديدة بنجاح وبدون تعليق
-          Navigator.pushReplacement(
+          Navigator.push(
             context,
             MaterialPageRoute<void>(
               builder: (_) => const WeeklyPlanningView(),
