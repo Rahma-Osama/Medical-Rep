@@ -3,12 +3,14 @@ import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/styles/app_text_style.dart';
 
 class CustomAppBar extends StatelessWidget {
-  const CustomAppBar({super.key, required this.label});
+  const CustomAppBar({super.key, required this.label, this.actions});
   final  String label;
+  final List<Widget>? actions;
 
   @override
   Widget build(BuildContext context) {
     return SliverAppBar(
+      actions: actions,
             expandedHeight: 180.0,
             floating: false,
             pinned: true,
@@ -21,6 +23,7 @@ class CustomAppBar extends StatelessWidget {
                   color: AppColors.whiteColor
                 )
                 ),
+                
 
               background: Container(
                 decoration: BoxDecoration(

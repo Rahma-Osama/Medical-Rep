@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
+import 'package:medical_rep/features/weekly_planning/domain/entities/visit_entity.dart';
 
 class CustomDaysTab extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onDaySelected;
-  final Map<int, Map<String, dynamic>> weeklyData;
+
+final Map<int, List<VisitEntity>> weeklyData;
 
   const CustomDaysTab({
     super.key,
@@ -15,7 +17,7 @@ class CustomDaysTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> weekDays = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu"];
+    final List<String> weekDays = ["Sat", "Sun", "Mon", "Tue", "Wed"];
 
     return SizedBox(
       height: 55,
@@ -27,8 +29,10 @@ class CustomDaysTab extends StatelessWidget {
           
           // شرط ظهور علامة الصح: لازم الدكتور والمنتج ميكونوش null في اليوم ده
        // داخل itemBuilder في ملف custom_days_tab.dart
-bool isDayCompleted = weeklyData[index]?["doctor"] != null && 
-                     weeklyData[index]?["brick"] != null; // ضفنا الـ brick هنا
+// ✅ الطريقة الجديدة للتأكد من اكتمال اليوم (داخل الـ build بتاع الـ Tab)
+// لازم نتأكد إن القائمة مش فاضية الأول، وبعدين نشوف لو كل اللي فيها سليم
+bool isCompleted = (weeklyData[index]?.isNotEmpty ?? false) && 
+                   (weeklyData[index]!.every((visit) => visit.isValid));
 
           return GestureDetector(
             onTap: () => onDaySelected(index),
@@ -42,7 +46,7 @@ bool isDayCompleted = weeklyData[index]?["doctor"] != null &&
                 border: Border.all(
                   color: isSelected 
                       ? AppColors.primaryColor 
-                      : (isDayCompleted ? Colors.green.shade300 : Colors.grey.shade300),
+                      : (isCompleted ? Colors.green.shade300 : Colors.grey.shade300),
                   width: 1.5,
                 ),
                 boxShadow: isSelected 
@@ -60,7 +64,7 @@ bool isDayCompleted = weeklyData[index]?["doctor"] != null &&
                     ),
                   ),
                   // أيقونة الصح (تظهر لو اليوم مكتمل)
-                  if (isDayCompleted)
+                  if (isCompleted)
                     Positioned(
                       top: 4,
                       right: 4,

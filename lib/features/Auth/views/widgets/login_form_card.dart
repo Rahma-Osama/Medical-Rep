@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:medical_rep/core/styles/app_color.dart';
 import 'package:medical_rep/core/styles/app_text_style.dart';
 import 'package:medical_rep/core/widgets/custom_button_widget.dart';
+import 'package:medical_rep/features/home/views/home_screen.dart';
 import '../../viewmodels/login_cubit.dart';
 
 class LoginFormCard extends StatelessWidget {
@@ -129,6 +130,7 @@ class LoginFormCard extends StatelessWidget {
     return BlocConsumer<LoginCubit, LoginState>(
       listener: (context, state) {
         if (state is LoginSuccess) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>HomeScreen()));
           // TODO: Navigate to home
         }
         if (state is LoginFailure) {

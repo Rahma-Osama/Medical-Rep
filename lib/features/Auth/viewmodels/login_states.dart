@@ -6,7 +6,11 @@ class LoginInitial extends LoginState {}
 
 class LoginLoading extends LoginState {}
 
-class LoginSuccess extends LoginState {}
+// في ملف login_states.dart
+class LoginSuccess extends LoginState {
+  final String role; // إضافة الـ role هنا
+  LoginSuccess(this.role);
+}
 
 class LoginFailure extends LoginState {
   final String message;
