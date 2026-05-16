@@ -463,7 +463,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   HomeHeaderSection(
                     greeting: _greeting(),
                     userName: userName,
-                    roleLine: roleLine,
+                
                   ),
                   Positioned(
                     left: 20,

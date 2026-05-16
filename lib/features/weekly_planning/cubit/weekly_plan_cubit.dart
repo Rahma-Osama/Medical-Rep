@@ -1,7 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
 import 'package:medical_rep/core/utils/work_week_dates.dart';
-import 'package:medical_rep/features/visit_flow/data/models/visit_data_models.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/entities/visit_entity.dart';
 import '../domain/usecases/save_visit_usecase.dart';
@@ -38,13 +37,13 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
 
   bool get isPlanAlreadySubmitted => _isSuccessfullyUploaded;
 
-  void _initData() async {
+void _initData() async {
     try {
-      // 1. جلب المناطق (From both branches)
+      // 1. جلب المناطق
       final fetchedBricks = await saveVisitUseCase.repository.getAreasFromSupabase();
       allBricks = List<String>.from(fetchedBricks); 
 
-      // 2. التحقق من السيرفر وجلب الخطة المحفوظة (Merged from dev2 & home_profile_updates)
+      // 2. التحقق من السيرفر وجلب الخطة
       final String? userId = Supabase.instance.client.auth.currentUser?.id;
       final response = await Supabase.instance.client
           .from('visits')
@@ -58,18 +57,38 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
         await resetPlan();
       } else {
         _isSuccessfullyUploaded = true;
-        final cachedPlan = saveVisitUseCase.repository.getLocalPlan();
         
-        if (cachedPlan.isNotEmpty || cachedPlan.values.any((list) => list.isNotEmpty)) {
+      // جلب البيانات المحلية
+        final cachedPlan = await saveVisitUseCase.repository.getLocalPlan();
+        
+        if (cachedPlan.isNotEmpty) {
           _weeklyData.clear();
-          // Using the advanced normalization utility from home_profile_updates
-          _weeklyData.addAll(_normalizeCachedPlanDates(cachedPlan));
-          print("✅ Cached Plan Loaded & Normalized: ${_weeklyData.length} days found.");
+          
+          final Map<int, List<VisitEntity>> sanitizedPlan = {};
+          
+          // ✅ الحل القاطع: بنتعامل مع الـ value على إنها List دايماً تماشياً مع الـ Repository
+          cachedPlan.forEach((key, value) {
+            if (value is List) {
+              sanitizedPlan[key] = List<VisitEntity>.from(value);
+            } else {
+              sanitizedPlan[key] = [];
+            }
+          });
+
+          // نضمن إن كل الـ 5 أيام موجودين في الـ Map عشان الـ UI ميتلخبطش
+          for (int i = 0; i < weekDays.length; i++) {
+            if (!sanitizedPlan.containsKey(i)) {
+              sanitizedPlan[i] = [];
+            }
+          }
+
+          _weeklyData.addAll(_normalizeCachedPlanDates(sanitizedPlan));
+          print("✅ Cached Plan Loaded Safely: ${_weeklyData.length} days processed.");
         }
       }
       _emitUpdatedState();
     } catch (e) {
-      print(" Init Error: $e");
+      print("❌ Init Error: $e");
       _emitUpdatedState(error: "حدث خطأ أثناء جلب البيانات");
     }
   }
@@ -115,13 +134,13 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
       ));
     }
   }
-
+// 1️⃣ تأمين دالة الـ resetPlan بالـ await
   Future<void> resetPlan() async {
-    if (!Hive.isBoxOpen('weekly_visits_box')) {
-      await Hive.openBox<VisitModel>('weekly_visits_box');
-    }
-
-    var box = Hive.box<VisitModel>('weekly_visits_box');
+    // ✅ الفحص الذكي: لو الصندوق مش مفتوح بالكامل استناه يفتح فوراً ومنع الكراش
+    final box = Hive.isBoxOpen('weekly_visits_box')
+        ? Hive.box('weekly_visits_box')
+        : await Hive.openBox('weekly_visits_box');
+        
     await box.clear();
 
     _weeklyData.forEach((key, value) => value.clear());
@@ -129,23 +148,31 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
     _isSuccessfullyUploaded = false;
 
     _emitUpdatedState();
-    print("Plan Reset.");
+    print("✅ Plan Reset Successfully.");
   }
 
-  void clearCacheIfExpired() {
-    if (_isCacheExpired()) {
-      var box = Hive.box<VisitModel>('weekly_visits_box');
-      box.clear();
+  // 2️⃣ تأمين دالة الـ clearCacheIfExpired بالـ await
+  void clearCacheIfExpired() async { // ضيفنا async هنا
+    if (await _isCacheExpired()) { // ضيفنا await هنا
+      // ✅ تأمين الصندوق بـ await فوراً
+      final box = Hive.isBoxOpen('weekly_visits_box')
+          ? Hive.box('weekly_visits_box')
+          : await Hive.openBox('weekly_visits_box');
+          
+      await box.clear();
 
       emit(WeeklyPlanInitial());
       print(" Cache expired and cleared.");
     }
   }
 
-  bool _isCacheExpired() {
-    if (!Hive.isBoxOpen('settings')) return false;
+  // 3️⃣ تأمين دالة فحص الكاش _isCacheExpired
+  Future<bool> _isCacheExpired() async {
+    // ✅ تأمين صندوق الـ settings برضه عشان نضمن السلامة 100%
+    final settingsBox = Hive.isBoxOpen('settings')
+        ? Hive.box('settings')
+        : await Hive.openBox('settings');
 
-    var settingsBox = Hive.box('settings');
     int? lastSync = settingsBox.get('last_sync_date');
 
     if (lastSync == null) return false;
@@ -155,7 +182,6 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
 
     return differenceInDays >= 5;
   }
-
   void tempUpdateField(String field, dynamic value) async {
     _tempVisit = _tempVisit.copyWith(
       brick: field == "brick" ? value : _tempVisit.brick,
@@ -179,7 +205,6 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
     _emitUpdatedState();
   }
 
-  // Resolved Conflict 2: Keeps the clean static logic from home_profile_updates
   String _getDateForDay(int index) =>
       WorkWeekDates.isoDateForPlanDay(index);
 
@@ -222,7 +247,6 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
     
     int existingIndex = currentDayVisits.indexWhere((v) => v.doctor == _tempVisit.doctor);
 
-    // Resolved Conflict 3: Preserved the duplicate prevention and local state update logic safely
     final visitToAdd = _tempVisit.copyWith(
       date: _getDateForDay(selectedDayIndex),
       dayName: weekDays[selectedDayIndex],
@@ -246,6 +270,8 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
   }
 
   void refreshPlanStatus() async {
+    if (isClosed) return;
+
     emit(WeeklyPlanLoading(
       weeklyData: Map.from(_weeklyData),
       selectedDayIndex: selectedDayIndex,
@@ -255,13 +281,16 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
 
     try {
       await saveVisitUseCase.repository.syncPlanStatusWithServer();
-      final updatedPlan = saveVisitUseCase.repository.getLocalPlan();
+      
+      // ✅ التعديل هنا: ضيفنا await لأن الدالة بقت Future ومضمونة
+      final updatedPlan = await saveVisitUseCase.repository.getLocalPlan();
 
       _weeklyData.clear();
       _weeklyData.addAll(updatedPlan);
 
       _emitUpdatedState();
     } catch (e) {
+      print(" Error in refreshPlanStatus: $e"); // عشان لو فيه حاجة تانية تبان في الـ Log
       _emitUpdatedState(error: "فشلت عملية تحديث البيانات");
     }
   }
@@ -276,6 +305,9 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
   }
 
   void _emitUpdatedState({String? error}) {
+    // ✅ حماية إضافية ضد الـ Bad State قبل أي emit
+    if (isClosed) return;
+
     emit(WeeklyPlanUpdated(
       weeklyData: Map.from(_weeklyData),
       selectedDayIndex: selectedDayIndex,
@@ -286,6 +318,8 @@ class WeeklyPlanCubit extends Cubit<WeeklyPlanState> {
   }
 
   void forceEnableSubmission() {
+    if (isClosed) return;
+
     _isSuccessfullyUploaded = false; 
 
     if (state is WeeklyPlanUpdated) {

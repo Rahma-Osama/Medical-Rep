@@ -94,7 +94,7 @@ class LoginScreen extends StatelessWidget {
         body: BlocListener<LoginCubit, LoginState>(
           listener: (context, state) {
 
-            // 1️⃣ حالة التحميل: تظهر دائرة واحدة فقط
+ 
             if (state is LoginLoading) {
               showDialog(
                 context: context,
@@ -103,7 +103,7 @@ class LoginScreen extends StatelessWidget {
               );
             }
 
-            // 2️⃣ حالة النجاح الكامل (لو مفيش مشاكل في الـ داتابيز)
+
             if (state is LoginSuccess) {
               if (Navigator.canPop(context)) Navigator.of(context, rootNavigator: true).pop();
 
@@ -125,13 +125,13 @@ class LoginScreen extends StatelessWidget {
               }
             }
 
-            // 3️⃣ حالة الفشل (التعامل الذكي والمعالجة القاطعة)
+  
             if (state is LoginFailure) {
               if (Navigator.canPop(context)) Navigator.of(context, rootNavigator: true).pop();
 
               final currentUser = Supabase.instance.client.auth.currentUser;
 
-              // 🌟 كوبري الإنقاذ الفوري: لو فيه يوزر مسجل Auth، وجهيه فوراً حسب نوعه واخرجي
+       
               if (currentUser != null) {
                 final email = currentUser.email?.toLowerCase().trim() ?? "";
 
@@ -148,16 +148,15 @@ class LoginScreen extends StatelessWidget {
                         (route) => false,
                   );
                 }
-                return; // اخرج فوراً واقفل الدالة
+                return; 
               }
 
-              // 🌟 الفلتر الذكي لحجب الـ SnackBar المكسور:
-              // لو الخطأ سببه جدول الـ profiles أو كود PGRST116، وجهيه برضه للـHomeScreen أو الأدمن وماتعرضيش السناك بار!
+          
               final errorMsg = state.message.toLowerCase();
               if (errorMsg.contains('profiles') || errorMsg.contains('pgrst116') || errorMsg.contains('coerce')) {
 
-                // خطوة احتياطية أخيرة للتوجيه حتى لو الـ currentUser لسه مقراش في نفس الفيمتو ثانية
-                // بنحاول نجيب الـ Auth من الكلاينت علطول
+            
+    
                 final fallbackUser = Supabase.instance.client.auth.currentUser;
                 final fallbackEmail = fallbackUser?.email?.toLowerCase().trim() ?? "";
 
@@ -174,10 +173,10 @@ class LoginScreen extends StatelessWidget {
                         (route) => false,
                   );
                 }
-                return; // اخرج في صمت تام وحظر الـ SnackBar
+                return; 
               }
 
-              // 🌟 4. إظهار رسالة الخطأ فقط وحصرياً لو البيانات غلط فعلياً (مثلاً الباسورد غلط)
+          
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(state.message),

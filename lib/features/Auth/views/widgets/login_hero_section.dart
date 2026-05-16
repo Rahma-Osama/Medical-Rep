@@ -40,14 +40,8 @@ class LoginHeroSection extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("MedRep", style: AppTextStyle.title.copyWith(color: AppColors.whiteColor)),
-            Text(
-              "FIELD INTELLIGENCE",
-              style: AppTextStyle.hint.copyWith(
-                color: AppColors.whiteColor.withOpacity(0.45),
-                letterSpacing: 1.5,
-              ),
-            ),
+            Text("MedSync", style: AppTextStyle.title.copyWith(color: AppColors.whiteColor)),
+          
           ],
         ),
       ],
@@ -59,11 +53,8 @@ class LoginHeroSection extends StatelessWidget {
       text: TextSpan(
         style: AppTextStyle.displayTitle.copyWith(color: AppColors.whiteColor),
         children: [
-          const TextSpan(text: "Welcome\nback, "),
-          TextSpan(
-            text: "Doctor",
-            style: TextStyle(color: AppColors.secondaryColor),
-          ),
+          const TextSpan(text: "Welcome Back "),
+         
         ],
       ),
     );
@@ -71,7 +62,7 @@ class LoginHeroSection extends StatelessWidget {
 
   Widget _buildSubtitle() {
     return Text(
-      "Sign in to manage your\nvisits and weekly plans",
+      "Sign in",
       style: AppTextStyle.body.copyWith(color: AppColors.whiteColor.withOpacity(0.5)),
     );
   }

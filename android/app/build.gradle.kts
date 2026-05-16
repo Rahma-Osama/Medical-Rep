@@ -24,8 +24,8 @@ defaultConfig {
     minSdk = flutter.minSdkVersion
     targetSdk = 35
 
-    versionCode = flutter.versionCode
-    versionName = flutter.versionName
+    versionCode = flutter.versionCode()
+    versionName = flutter.versionName()
 }
 
     buildTypes {

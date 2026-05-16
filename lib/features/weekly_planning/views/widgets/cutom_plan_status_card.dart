@@ -125,13 +125,8 @@ class CutomPlanStatusCard extends StatelessWidget {
 
               const SizedBox(width: 8),
 
-              Text(
-                "• $specialty",
-                style: AppTextStyle.body.copyWith(
-                  color: Colors.blueAccent,
-                  fontSize: 13,
-                ),
-              ),
+             
+           
             ],
           ),
 

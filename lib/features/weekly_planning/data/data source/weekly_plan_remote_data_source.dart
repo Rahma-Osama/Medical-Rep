@@ -116,7 +116,8 @@ class WeeklyPlanRemoteDataSourceImpl implements WeeklyPlanRemoteDataSource {
   
   Future<void> _saveVisitsToCache(List<VisitModel> visits) async {
     try {
-      var box = Hive.box<VisitModel>('weekly_visits_box');
+      // ✅ شيلنا الـ <VisitModel> من نداء الـ box لمنع القفلة مع المين
+final box = Hive.box('weekly_visits_box');
       var settingsBox = Hive.box('settings');
 
       await box.clear();

@@ -8,12 +8,12 @@ class HomeHeaderSection extends StatelessWidget {
     super.key,
     required this.greeting,
     required this.userName,
-    required this.roleLine,
+     this.roleLine,
   });
 
   final String greeting;
   final String userName;
-  final String roleLine;
+  final String ?roleLine;
 
   @override
   Widget build(BuildContext context) {
@@ -73,14 +73,8 @@ class HomeHeaderSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                roleLine,
-                style: AppTextStyle.body.copyWith(
-                  color: AppColors.whiteColor.withOpacity(0.85),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+             
+             
             ],
           ),
         ],

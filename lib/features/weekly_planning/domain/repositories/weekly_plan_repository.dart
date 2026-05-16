@@ -2,7 +2,8 @@ import 'package:medical_rep/features/weekly_planning/domain/entities/visit_entit
 
 abstract class WeeklyPlanRepository {
   Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData);
-  Map<int, List<VisitEntity>> getLocalPlan(); 
+// جوه ملف الـ Abstract Class (weekly_plan_repository.dart) عدلي السطر ده:
+Future<Map<int, List<VisitEntity>>> getLocalPlan();
   Future<void> submitFullPlan();
   
 

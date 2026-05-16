@@ -46,38 +46,74 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
   }
 
   @override
+  // ✅ التعديل الأول: تحويل الدالة لـ Future وآمنة تماماً مع الـ Hive
+  Future<Map<int, List<VisitEntity>>> getLocalPlan() async {
+    // 🔹 نضمن فتح الصندوق الأول قبل ما نطلب الكاش من الـ Data Source
+    if (!Hive.isBoxOpen('weekly_visits_box')) {
+      await Hive.openBox('weekly_visits_box');
+    }
+
+    final cachedModelsMap = localDS.getCachedVisits();
+    return cachedModelsMap.map((key, modelsList) {
+      final dayName = WorkWeekDates.planDayNames[key];
+      return MapEntry(
+        key,
+        modelsList
+            .map(
+              (model) => VisitEntity(
+                visitId: model.visitId, 
+                brick: model.brick,
+                doctor: model.doctor,
+                shift: model.shift,
+                type: model.type,
+                notes: model.notes,
+                date: WorkWeekDates.normalizedVisitDate(
+                  dayName: model.dayName ?? dayName,
+                  visitDate: model.date,
+                ),
+                dayName: model.dayName ?? dayName,
+              ),
+            )
+            .toList(),
+      );
+    });
+  }
+
+  // ✅ التعديل الثاني: تأمين دالة الحفظ وضمان فتح البوكس قبل التعامل مع الـ Data Source
   Future<void> saveWeeklyPlan(Map<int, List<VisitEntity>> weeklyData) async {
     try {
       final String? userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) throw Exception("User not logged in!");
+
+      // 🔹 تأمين الصندوق قبل بدء اللوب وعمليات الحفظ المحلي
+      if (!Hive.isBoxOpen('weekly_visits_box')) {
+        await Hive.openBox('weekly_visits_box');
+      }
 
       final List<Map<String, dynamic>> allVisitsToUpload = [];
 
       for (var entry in weeklyData.entries) {
         final dayName = WorkWeekDates.planDayNames[entry.key];
         
-        // Convert entities to models (including date normalization and local caching)
         final List<VisitModel> modelsList = entry.value.map((entity) {
           final visitDate = WorkWeekDates.normalizedVisitDate(
             dayName: entity.dayName ?? dayName,
             visitDate: entity.date,
           );
           return VisitModel(
-            visitId: entity.visitId, // Preserved from dev2
+            visitId: entity.visitId, 
             brick: entity.brick,
             doctor: entity.doctor,
             shift: entity.shift,
             type: entity.type,
-            date: visitDate, // Normalized from home_profile_updates
+            date: visitDate, 
             dayName: entity.dayName ?? dayName,
             status: 'pending',
           );
         }).toList();
         
-        // 1. حفظ محلي في Hive (From home_profile_updates)
         await localDS.saveDayVisitsLocally(entry.key, modelsList);
 
-        // 2. Prepare payload map for remote database (Merging both logics)
         for (var entity in entry.value) {
           final String? existingId = entity.visitId; 
           final visitDate = WorkWeekDates.normalizedVisitDate(
@@ -97,7 +133,6 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
             'admin_feedback': null,
           };
 
-          // If the visit has a valid ID (from dev2 structure), attach it to trigger Update
           if (existingId != null && existingId.length > 10) {
             visitMap['id'] = existingId;
           }
@@ -106,7 +141,6 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
         }
       }
 
-      // 3. Clean up older misdated pending fields (From home_profile_updates)
       final today = WorkWeekDates.isoDate(DateTime.now());
       await Supabase.instance.client
           .from('visits')
@@ -121,50 +155,21 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
           .from('visits')
           .delete()
           .eq('user_id', userId)
-          .gte('visit_date', weekRange.$1)
+  
           .lte('visit_date', weekRange.$2)
           .eq('status', 'pending');
 
-      // 4. Upsert the corrected plan using fallback keys to protect indices
       if (allVisitsToUpload.isNotEmpty) {
         await Supabase.instance.client.from('visits').upsert(
               allVisitsToUpload,
-              onConflict: 'id', // Prioritized ID-based upserts from dev2
+              onConflict: 'id', 
             );
-        print("✅ Plan synced with Supabase via ID Upsert");
+        print(" Plan synced with Supabase via ID Upsert");
       }
     } catch (e) {
-      print("❌ Repository Error: $e");
+      print(" Repository Error: $e");
       rethrow;
     }
-  }
-
-  @override
-  Map<int, List<VisitEntity>> getLocalPlan() {
-    final cachedModelsMap = localDS.getCachedVisits();
-    return cachedModelsMap.map((key, modelsList) {
-      final dayName = WorkWeekDates.planDayNames[key];
-      return MapEntry(
-        key,
-        modelsList
-            .map(
-              (model) => VisitEntity(
-                visitId: model.visitId, // Combined: keeps local cache trackable
-                brick: model.brick,
-                doctor: model.doctor,
-                shift: model.shift,
-                type: model.type,
-                notes: model.notes,
-                date: WorkWeekDates.normalizedVisitDate(
-                  dayName: model.dayName ?? dayName,
-                  visitDate: model.date,
-                ),
-                dayName: model.dayName ?? dayName,
-              ),
-            )
-            .toList(),
-      );
-    });
   }
 
   @override
@@ -194,44 +199,47 @@ class WeeklyPlanRepositoryImpl implements WeeklyPlanRepository {
           return data.map((json) => VisitModel.fromJson(json)).toList();
         });
   }
+Future<void> syncPlanStatusWithServer() async {
+  try {
+    final String? userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
 
-  @override
-  Future<void> syncPlanStatusWithServer() async {
-    try {
-      final String? userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) return;
+    final response = await Supabase.instance.client
+        .from('visits')
+        .select('visit_date, status, doctor_name')
+        .eq('user_id', userId);
 
-      final response = await Supabase.instance.client
-          .from('visits')
-          .select('visit_date, status, doctor_name')
-          .eq('user_id', userId);
+    final List dataFromServer = response as List;
+    
+   
+final box = Hive.isBoxOpen('weekly_visits_box') 
+    ? Hive.box('weekly_visits_box') 
+    : await Hive.openBox('weekly_visits_box');
 
-      final List dataFromServer = response as List;
-      final box = Hive.box<VisitModel>('weekly_visits_box');
+    bool isAnyVisitUpdated = false;
 
-      bool isAnyVisitUpdated = false;
-      List<VisitModel> cachedVisits = box.values.toList();
+    List<VisitModel> cachedVisits = box.values.cast<VisitModel>().toList();
 
-      for (var visit in cachedVisits) {
-        final match = dataFromServer.firstWhere(
-          (serverRow) =>
-              serverRow['visit_date'] == visit.date &&
-              serverRow['doctor_name'] == visit.doctor,
-          orElse: () => null,
-        );
+    for (var visit in cachedVisits) {
+      final match = dataFromServer.firstWhere(
+        (serverRow) =>
+            serverRow['visit_date'] == visit.date &&
+            serverRow['doctor_name'] == visit.doctor,
+        orElse: () => null,
+      );
 
-        if (match != null && visit.status != match['status']) {
-          visit.status = match['status'];
-          isAnyVisitUpdated = true;
-        }
+      if (match != null && visit.status != match['status']) {
+        visit.status = match['status'];
+        isAnyVisitUpdated = true;
       }
-
-      if (isAnyVisitUpdated) {
-        await box.clear();
-        await box.addAll(cachedVisits);
-      }
-    } catch (e) {
-      print("❌ خطأ أثناء المزامنة: $e");
     }
+
+    if (isAnyVisitUpdated) {
+      await box.clear();
+      await box.addAll(cachedVisits);
+    }
+  } catch (e) {
+    print(" خطأ أثناء المزامنة: $e");
   }
+}
 }

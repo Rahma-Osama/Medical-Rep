@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:hive/hive.dart';
 import 'package:medical_rep/features/visit_flow/domain/usecases/validate_location_usecase.dart';
 import 'package:medical_rep/features/weekly_planning/data/data%20source/weekly_plan_remote_data_source.dart';
 import 'package:medical_rep/features/weekly_planning/data/repositories/weekly_plan_repository_impl.dart';
@@ -57,10 +58,12 @@ void setupServiceLocator() {
   // ===========================================================================
   // 3. Weekly Planning (Data Sources & Repos)
   // ===========================================================================
-  getIt.registerLazySingleton<WeeklyPlanLocalDataSource>(
-        () => WeeklyPlanLocalDataSourceImpl(),
-  );
-
+getIt.registerLazySingleton<WeeklyPlanLocalDataSource>(
+  () => WeeklyPlanLocalDataSourceImpl(
+    // ✅ بنمرر الصندوق المفتوح جاهز من الـ Hive منعاً لأي سباق أو كراش
+    weeklyBox: Hive.box('weekly_visits_box'), 
+  ),
+);
   getIt.registerLazySingleton<WeeklyPlanRemoteDataSource>(
         () => WeeklyPlanRemoteDataSourceImpl(),
   );
